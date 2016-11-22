@@ -200,7 +200,7 @@ func processWrappedSecretId(wrappedSecretId common.WrappedSecretId, roleId strin
 	})
 
 	if err != nil {
-		return authToken{}, errors.Wrap(err, "coudl not log in using role_id and secret_id")
+		return authToken{}, errors.Wrap(err, "could not log in using role_id and secret_id")
 	}
 
 	secretAuth := token.Auth
