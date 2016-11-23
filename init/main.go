@@ -215,7 +215,7 @@ func processWrappedSecretId(wrappedSecretId common.WrappedSecretId, roleId strin
 
 func generateCertificate(ip net.IP, duration time.Duration) (tls.Certificate, error) {
 
-	priv, err := ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
+	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 
 	if err != nil {
 		return tls.Certificate{}, errors.Wrap(err, "could not generate ECDSA key.")
