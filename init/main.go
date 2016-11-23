@@ -27,6 +27,7 @@ type authToken struct {
 	Accessor      string `json:"accessor"`
 	LeaseDuration int    `json:"leaseDuration"`
 	Renewable     bool   `json:"renewable"`
+	VaultAddr     string `json:"vaultAddr"`
 }
 
 func main() {
@@ -210,6 +211,7 @@ func processWrappedSecretId(wrappedSecretId common.WrappedSecretId, roleId strin
 		Accessor:      secretAuth.Accessor,
 		LeaseDuration: secretAuth.LeaseDuration,
 		Renewable:     secretAuth.Renewable,
+		VaultAddr:     wrappedSecretId.VaultAddr,
 	}, nil
 }
 
