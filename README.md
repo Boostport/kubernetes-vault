@@ -31,6 +31,7 @@ configuration using Kubernetes annotations.
 ### Kubernetes-vault environment variables
 
 | Environment Variable  | Description                                                               | Required   | Default Value                | Example                                 |
+|-----------------------|---------------------------------------------------------------------------|------------|------------------------------|-----------------------------------------|
 | RAFT_DIR              | Directory to store raft information.                                      | `no`       | `/var/lib/kubernetes-vault/` | `/var/my/dir`                           |
 | VAULT_TOKEN           | Periodic Vault token to talk to Vault.                                    | `yes`      | `none`                       | `91526d9b-4850-3405-02a8-aa29e74e17a5`  |
 | VAULT_ADDR            | Address of the Vault server.                                              | `yes`      | `none`                       | `https://vault:8200`                    |
@@ -43,12 +44,14 @@ configuration using Kubernetes annotations.
 ### Init container environment variables
 
 | Environment Variable  | Description                                                 | Required  | Default Value                                | Example                                 |
+|-----------------------|-------------------------------------------------------------|-----------|----------------------------------------------|-----------------------------------------|
 | VAULT_ROLE_ID         | The Vault role id.                                          | `yes`     | `none`                                       | `313b0821-4ff6-1df8-54dd-c3eea5d3b8b1`  |
 | TOKEN_PATH            | The location where the Vault token will be written          | `no`      | `/var/run/secrets/boostport.com/vault-token` | `/var/run/my/path`                      |
 
 ### Init container annotations
 
 | Annotation                              | Description                         | Required  | Default Value | Example       |
+|-----------------------------------------|-------------------------------------|-----------|---------------|---------------|
 | pod.boostport.com/vault-approle         | The Vault role.                     | `yes`     | `none`        | `sample-app`  |
 | pod.boostport.com/vault-init-container  | The name of the init container.     | `yes`     | `none`        | `install`     |
 

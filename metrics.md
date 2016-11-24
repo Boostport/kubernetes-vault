@@ -25,6 +25,7 @@ These metrics are prefixed with `kubernetesvault_kubernetes_`.
 These metrics are prefixed with `kubernetesvault_vault_`.
 
 | Name                                       | Description                                                                             | Type             |
+|--------------------------------------------|-----------------------------------------------------------------------------------------|------------------|
 | secret_id_requests_total                   | The total number of requests for an approle's secret_id.                                | Counter(AppRole) |
 | secret_id_requests_failures_total          | The total number of requests for an approle's secret_id that failed.                    | Counter(AppRole) |
 | token_renewal_requests_total               | The total number of requests to renew the auth token for Kubernetes-Vault.              | Counter          |
@@ -36,6 +37,7 @@ These metrics are prefixed with `kubernetesvault_vault_`.
 These metrics are prefixed with `kubernetesvault_raft_`.
 
 | Name                      | Description                                    | Type    |
+|---------------------------|------------------------------------------------|---------|
 | leader_changes_seen_total | The total number of leader changes seen.       | Counter |
 | nodes_total               | The total number of raft nodes in the cluster. | Gauge   |
 
@@ -43,6 +45,7 @@ These metrics are prefixed with `kubernetesvault_raft_`.
 These metrics are prefixed with `kubernetesvault_gossip_`.
 
 | Name               | Description                                                       | Type          |
+|--------------------|-------------------------------------------------------------------|---------------|
 | nodes_joined_total | The total number of times a node joined the cluster using gossip. | Counter(Node) |
 | nodes_left_total   | The total number of times a node left the cluster using gossip.   | Counter(Node) |
 | nodes_failed_total | The total number of times a gossip node failed.                   | Counter(Node) |
@@ -52,5 +55,6 @@ These metrics are prefixed with `kubernetesvault_gossip_`.
 These metrics are prefixed with `kubernetesvault_server_`.
 
 | Name                       | Description                                     | Type             |
+|----------------------------|-------------------------------------------------|------------------|
 | secret_pushes_total        | The total number of secrets pushed.             | Counter(AppRole) |
 | secret_push_failures_total | The total number of times a secret push failed. | Counter(AppRole) |
