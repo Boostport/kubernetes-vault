@@ -1,5 +1,5 @@
 # Kubernetes Vault Integration
-The kubernetes-vault project allows pods to automatically receive a Vault token using Vault's [AppRole auth backend](https://www.vaultproject.io/docs/auth/approle.html).
+The Kubernetes-Vault project allows pods to automatically receive a Vault token using Vault's [AppRole auth backend](https://www.vaultproject.io/docs/auth/approle.html).
 
 ![flow diagram](flow-diagram.png)
 
@@ -18,7 +18,7 @@ The kubernetes-vault project allows pods to automatically receive a Vault token 
 * You should configure Vault to use HTTPS, so that the authentication token and any other secrets cannot be sniffed.
 
 ## Get started
-To run kubernetes-vault on your cluster, follow the [quick start guide](quick-start.md).
+To run Kubernetes-Vault on your cluster, follow the [quick start guide](quick-start.md).
 
 ## Best practices
 See our list of [best practices](best-practices.md).
@@ -28,7 +28,7 @@ The project consists of 2 containers, a service container what watches the Kuber
 receives the `secret_id` and exchanges it for an auth token. These 2 containers are configured using environment variables. The init container also requires
 configuration using Kubernetes annotations.
 
-### Kubernetes-vault environment variables
+### Kubernetes-Vault environment variables
 
 | Environment Variable  | Description                                                               | Required   | Default Value                | Example                                 |
 |-----------------------|---------------------------------------------------------------------------|------------|------------------------------|-----------------------------------------|
@@ -56,7 +56,7 @@ configuration using Kubernetes annotations.
 | pod.boostport.com/vault-init-container  | The name of the init container.     | `yes`     | `none`        | `install`     |
 
 ## Metrics
-Kubernetes-vault uses [Prometheus](https://prometheus.io) for metrics reporting. It exposes these metrics over the `/metrics` endpoint over http or https.
+Kubernetes-Vault uses [Prometheus](https://prometheus.io) for metrics reporting. It exposes these metrics over the `/metrics` endpoint over http or https.
 
 For more information about metrics, read the guide on [metrics](metrics.md).
 
@@ -64,6 +64,8 @@ For more information about metrics, read the guide on [metrics](metrics.md).
 PRs are highly welcomed!
 
 We use glide as our dependency manager. To work on the project, install glide, then run `glide install --strip-vendor`.
+
+Docker is used to build the binaries, so you need to have docker installed.
 
 The project also comes with a few scripts to simplify building binaries and docker containers and pushing docker containers.
 Simply run `build.sh` to build the binaries. To build and push images, simplify run `build-images.sh`.
