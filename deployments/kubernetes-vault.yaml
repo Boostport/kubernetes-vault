@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: kubernetes-vault
+  labels:
+    run: kubernetes-vault
+spec:
+  clusterIP: None
+  selector:
+    run: kubernetes-vault
+  # Kubernetes-Vault does not need to expose any ports through a headless service.
+  # However, there's a Kubernetes bug where the pods won't be registered in the API,
+  # so we need to use this hack. See kubernetes/kubernetes#32796
+  ports:
+    - name: port
+      port: 80
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: kubernetes-vault
+spec:
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        run: kubernetes-vault
+    spec:
+      containers:
+      - name: kubernetes-vault
+        image: boostport/kubernetes-vault:0.1.0
+        env:
+        - name: VAULT_TOKEN
+          value: 91526d9b-4850-3405-02a8-aa29e74e17a5
+        - name: VAULT_ADDR
+          value: http://vault:8200
+        - name: KUBERNETES_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: KUBERNETES_SERVICE
+          value: kubernetes-vault
+        - name: VAULT_CA_BACKEND
+          value: intermediate-ca
+        - name: VAULT_CA_ROLE
+          value: kubernetes-vault
