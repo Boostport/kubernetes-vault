@@ -1,13 +1,16 @@
 package main
 
 import (
+	"crypto/x509"
 	"github.com/Boostport/kubernetes-vault/common"
 	"github.com/Boostport/kubernetes-vault/service/client"
 	"github.com/Boostport/kubernetes-vault/service/cluster"
+	"github.com/Boostport/kubernetes-vault/service/metrics"
 	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes/client-go/pkg/util/rand"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -47,6 +50,20 @@ func main() {
 		logger.Fatal("The VAULT_ADDR environment variable is not set.")
 	}
 
+	caBackend := os.Getenv("VAULT_CA_BACKEND")
+
+	caRole := os.Getenv("VAULT_CA_ROLE")
+
+	if (caRole != "") != (caBackend != "") {
+		logger.Fatalf("The VAULT_CA_BACKEND and VAULT_CA_ROLE environment variables must both be provided if you want to serve the metrics endpoint over https.")
+	}
+
+	clientCAs := os.Getenv("VAULT_CLIENT_CAS")
+
+	if caRole == "" && caBackend == "" && clientCAs != "" {
+		logger.Fatalf("The VAULT_CA_BACKEND and VAULT_CA_ROLE environment variables must be set if you want to use VAULT_CLIENT_CAS.")
+	}
+
 	kubeNamespace := os.Getenv("KUBERNETES_NAMESPACE")
 
 	if kubeNamespace == "" {
@@ -80,6 +97,31 @@ func main() {
 
 	if err != nil {
 		logger.Fatalf("Could not create the vault client: %s", err)
+	}
+
+	if caBackend != "" && caRole != "" {
+		certCh, err := vault.GetAndRenewCertificate(bindAddr, caBackend, caRole)
+
+		if err != nil {
+			logger.Fatalf("Could not get certificate for metrics server: %s", err)
+		}
+
+		var roots *x509.CertPool
+
+		if clientCAs != "" {
+			clientRootCAs := strings.Split(clientCAs, ",")
+
+			roots, err = vault.RootCertificates(clientRootCAs)
+
+			if err != nil {
+				logger.Fatalf("Could not get root certificates: %s", err)
+			}
+		}
+
+		metrics.StartServer(certCh, roots)
+
+	} else {
+		metrics.StartServer(nil, nil)
 	}
 
 	gossip, err := cluster.NewGossip(bindAddr.String(), nodes, 0, logger.Writer())

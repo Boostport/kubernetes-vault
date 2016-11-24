@@ -1,6 +1,8 @@
 package client
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"github.com/Boostport/kubernetes-vault/common"
 	"github.com/Sirupsen/logrus"
@@ -10,6 +12,9 @@ import (
 	"github.com/hashicorp/vault/api"
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
+	"net"
+	"os"
 	"regexp"
 	"time"
 )
@@ -41,7 +46,10 @@ func (v *Vault) GetSecretId(role string) (common.WrappedSecretId, error) {
 
 	s, err := v.client.Logical().Write(fmt.Sprintf("auth/approle/role/%s/secret-id", role), map[string]interface{}{})
 
+	secretIdRequests.With(prometheus.Labels{"approle": role}).Inc()
+
 	if err != nil {
+		secretIdRequestFailures.With(prometheus.Labels{"approle": role}).Inc()
 		return common.WrappedSecretId{}, errors.Wrap(err, "could not get secret_id")
 	}
 
@@ -224,7 +232,10 @@ func (v *Vault) renewToken() {
 
 			err := backoff.Retry(op, exp)
 
+			tokenRenewalRequests.Inc()
+
 			if err != nil {
+				tokenRenewalFailures.Inc()
 				v.logger.Infof("Could not renew auth token: %s", err)
 			}
 
@@ -232,6 +243,130 @@ func (v *Vault) renewToken() {
 			return
 		}
 	}
+}
+
+func (v *Vault) issueCertificate(ip net.IP, backend string, role string) (tls.Certificate, int, error) {
+
+	hostname, err := os.Hostname()
+
+	if err != nil {
+		return tls.Certificate{}, 0, errors.Wrap(err, "could not lookup container hostname")
+	}
+
+	secret, err := v.client.Logical().Write(fmt.Sprintf("%s/issue/%s", backend, role), map[string]interface{}{
+		"common_name": hostname,
+		"ip_sans":     ip.String(),
+	})
+
+	if err != nil {
+		return tls.Certificate{}, 0, errors.Wrap(err, "error issuing certificate")
+	}
+
+	certs := secret.Data["certificate"].(string)
+
+	if chain, ok := secret.Data["ca_chain"]; ok {
+
+		for _, c := range chain.([]interface{}) {
+			certs += "\n"
+			certs += string(c.(string))
+		}
+	}
+
+	key := secret.Data["private_key"].(string)
+
+	cert, err := tls.X509KeyPair([]byte(certs), []byte(key))
+
+	if err != nil {
+		return tls.Certificate{}, 0, errors.Wrap(err, "could not parse certificate and private key")
+	}
+
+	return cert, secret.LeaseDuration, nil
+}
+
+func (v *Vault) GetAndRenewCertificate(ip net.IP, backend string, role string) (<-chan tls.Certificate, error) {
+
+	ch := make(chan tls.Certificate, 8)
+
+	cert, ttl, err := v.issueCertificate(ip, backend, role)
+
+	if err != nil {
+		return ch, errors.Wrap(err, "could not issue certificate")
+	}
+
+	ch <- cert
+
+	go func(initialTTL int, ch chan<- tls.Certificate) {
+
+		var (
+			cert tls.Certificate
+			ttl  int
+			err  error
+		)
+
+		nextRenewal := time.Duration(float64(initialTTL)*0.75) * time.Second
+		timer := time.NewTimer(nextRenewal)
+
+		for {
+			select {
+			case <-timer.C:
+				exp := backoff.NewExponentialBackOff()
+				maxElapsedTime := calculateMaxElapsedTime(nextRenewal)
+				exp.MaxElapsedTime = maxElapsedTime
+
+				// Perform the renewal with backoff
+				op := func() error {
+
+					cert, ttl, err = v.issueCertificate(ip, backend, role)
+
+					if err != nil {
+						return err
+					}
+
+					return nil
+				}
+
+				err = backoff.Retry(op, exp)
+
+				certificateRenewalRequests.Inc()
+
+				if err != nil {
+					certificateRenewalFailures.Inc()
+
+					v.logger.Infof("Could not renew certificate: %s", err)
+					nextRenewal = 1 * time.Minute
+				} else {
+					nextRenewal = time.Duration(float64(ttl/2)) * time.Second
+				}
+
+				timer.Reset(nextRenewal)
+
+				ch <- cert
+
+			case <-v.shutdown:
+				return
+			}
+		}
+	}(ttl, ch)
+
+	return ch, nil
+}
+
+func (v *Vault) RootCertificates(roots []string) (*x509.CertPool, error) {
+
+	pool := x509.NewCertPool()
+
+	for _, root := range roots {
+
+		s, err := v.client.Logical().Read(fmt.Sprintf("%s/cert/ca", root))
+
+		if err != nil {
+			return pool, errors.Wrap(err, "could not get root certificate")
+		}
+
+		pool.AppendCertsFromPEM([]byte(s.Data["certificate"].(string)))
+	}
+
+	return pool, nil
 }
 
 func (v *Vault) Shutdown() {

@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/serf/serf"
 	"github.com/kubernetes/client-go/pkg/util/json"
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/net/context"
 	"golang.org/x/net/context/ctxhttp"
 	"io"
@@ -165,6 +166,8 @@ func (s *Store) start() {
 
 		case l := <-s.Raft.LeaderCh():
 
+			leaderChangesSeen.Inc()
+
 			if l {
 				s.shutdownLeader = make(chan struct{})
 
@@ -292,8 +295,10 @@ func (s *Store) pushSecretIdToPod(pod client.Pod) {
 	}
 
 	err = backoff.Retry(op, exp)
+	secretPushes.With(prometheus.Labels{"approle": pod.Role}).Inc()
 
 	if err != nil {
+		secretPushFailures.With(prometheus.Labels{"approle": pod.Role}).Inc()
 		s.logger.Infof("Could not push wrapped secret_id to pod (%s): %s", pod.Name, err)
 	} else {
 		s.logger.Infof("Successfully pushed wrapped secret_id to pod (%s)", pod.Name)
@@ -317,6 +322,8 @@ func (s *Store) handleGossipMembershipChange(memberEvent serf.MemberEvent) {
 
 		if memberEvent.EventType() == serf.EventMemberJoin {
 
+			nodeJoined.With(prometheus.Labels{"node": member.Addr.String()}).Inc()
+
 			if leader.Error() == nil {
 				f := s.Raft.AddPeer(changedPeer)
 
@@ -335,6 +342,15 @@ func (s *Store) handleGossipMembershipChange(memberEvent serf.MemberEvent) {
 
 		} else if memberEvent.EventType() == serf.EventMemberLeave || memberEvent.EventType() == serf.EventMemberFailed || memberEvent.EventType() == serf.EventMemberReap {
 
+			switch memberEvent.EventType() {
+			case serf.EventMemberLeave:
+				nodeLeft.With(prometheus.Labels{"node": member.Addr.String()}).Inc()
+			case serf.EventMemberFailed:
+				nodeFailed.With(prometheus.Labels{"node": member.Addr.String()}).Inc()
+			case serf.EventMemberReap:
+				nodeReaped.With(prometheus.Labels{"node": member.Addr.String()}).Inc()
+			}
+
 			if leader.Error() == nil {
 
 				f := s.Raft.RemovePeer(changedPeer)
@@ -351,6 +367,12 @@ func (s *Store) handleGossipMembershipChange(memberEvent serf.MemberEvent) {
 				}
 			}
 		}
+	}
+
+	if peers, err := s.peerStore.Peers(); err != nil {
+		s.logger.Infof("Error getting peer list: %s", err)
+	} else {
+		nodesTotal.Set(float64(len(peers)))
 	}
 }
 

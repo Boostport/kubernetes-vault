@@ -33,11 +33,11 @@ type InitContainerStatus struct {
 	State map[string]interface{}
 }
 
-func (c *Kube) GetPods() ([]Pod, error) {
+func (k *Kube) GetPods() ([]Pod, error) {
 
 	p := []Pod{}
 
-	pods, err := c.client.Core().Pods(c.namespace).List(v1.ListOptions{})
+	pods, err := k.client.Core().Pods(k.namespace).List(v1.ListOptions{})
 
 	if err != nil {
 		return p, errors.Wrap(err, "could not list pods")
@@ -55,12 +55,12 @@ func (c *Kube) GetPods() ([]Pod, error) {
 	return p, nil
 }
 
-func (c *Kube) WatchForPods() (<-chan Pod, chan<- struct{}, error) {
+func (k *Kube) WatchForPods() (<-chan Pod, chan<- struct{}, error) {
 
 	events := make(chan Pod, 1024)
 	stop := make(chan struct{})
 
-	watcher, err := c.client.Core().Pods(c.namespace).Watch(v1.ListOptions{
+	watcher, err := k.client.Core().Pods(k.namespace).Watch(v1.ListOptions{
 		Watch: true,
 	})
 
@@ -68,12 +68,12 @@ func (c *Kube) WatchForPods() (<-chan Pod, chan<- struct{}, error) {
 		return events, stop, errors.Wrap(err, "could not create watcher")
 	}
 
-	go c.watch(watcher, events, stop)
+	go k.watch(watcher, events, stop)
 
 	return events, stop, nil
 }
 
-func (c *Kube) watch(watcher watch.Interface, events chan<- Pod, stop <-chan struct{}) {
+func (k *Kube) watch(watcher watch.Interface, events chan<- Pod, stop <-chan struct{}) {
 
 	for {
 		select {
@@ -138,11 +138,11 @@ func convertToPod(pod *v1.Pod) (Pod, error) {
 	return Pod{}, errors.Errorf("Pod (%s) is not ready yet", pod.Name)
 }
 
-func (c *Kube) Discover(service string) ([]string, error) {
+func (k *Kube) Discover(service string) ([]string, error) {
 
 	ips := []string{}
 
-	endpoints, err := c.client.Core().Endpoints(c.namespace).Get(service)
+	endpoints, err := k.client.Core().Endpoints(k.namespace).Get(service)
 
 	if err != nil {
 		return ips, errors.Wrapf(err, "could not get endpoints for the service %s", service)
@@ -158,6 +158,8 @@ func (c *Kube) Discover(service string) ([]string, error) {
 			ips = append(ips, endpoint.IP)
 		}
 	}
+
+	kubeDiscoveredNodes.Set(float64(len(ips)))
 
 	return ips, nil
 }
