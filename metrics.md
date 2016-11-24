@@ -19,6 +19,7 @@ If you need TLS Client Authentication (to ensure only authorized clients can con
 These metrics are prefixed with `kubernetesvault_kubernetes_`.
 
 | Name                   | Description                                                                 | Type  |
+|------------------------|-----------------------------------------------------------------------------|-------|
 | discovered_nodes_total | The total number of nodes discovered using the Kubernetes service endpoint. | Gauge |
 
 ### Vault
