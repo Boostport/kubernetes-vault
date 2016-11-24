@@ -14,3 +14,6 @@ cd service && go build -a -o kubernetes-vault
 
 # Build the init container
 cd ../init && go build -a -o kubernetes-vault-init
+
+# Build the demo container
+cd ../demo && go build -a -o demo
