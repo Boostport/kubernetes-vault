@@ -8,7 +8,7 @@ docker run --rm -v $PWD:/go/src/github.com/Boostport/kubernetes-vault -w /go/src
 # Build the images
 docker build -t boostport/kubernetes-vault:$VERSION service/
 docker build -t boostport/kubernetes-vault-init:$VERSION init/
-docker build -t boostport/kubernetes-vault-sample-app:$VERSION demo/
+docker build -t boostport/kubernetes-vault-sample-app:$VERSION sample-app/
 
 # Push images
 docker push boostport/kubernetes-vault:$VERSION
