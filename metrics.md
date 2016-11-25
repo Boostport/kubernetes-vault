@@ -3,7 +3,7 @@
 Kubernetes-Vault uses [Prometheus](https://www.prometheus.io) for metrics reporting. These metrcis can be used for
 monitoring and debugging. Metrics are not persisted, if a node restarts, the metrics for that node will reset.
 
-Too see the metrics, visit the `/metrics` endpoint.
+To see the metrics, visit the `/metrics` endpoint.
 
 ## Configuration
 Metrics can be served over http by default. To enable https, set the `VAULT_CA_BACKEND` and `VAULT_CA_ROLE` environment
