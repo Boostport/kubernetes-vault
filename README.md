@@ -23,6 +23,21 @@ To run Kubernetes-Vault on your cluster, follow the [quick start guide](quick-st
 ## Best practices
 See our list of [best practices](best-practices.md).
 
+## Token format
+The token information is encoded as JSON and written to the file. Here's an example of what it looks like:
+
+```json
+{
+   "clientToken":"91526d9b-4850-3405-02a8-aa29e74e17a5",
+   "accessor":"476ea048-ded5-4d07-eeea-938c6b4e43ec",
+   "leaseDuration":3600,
+   "renewable":true,
+   "vaultAddr":"https://vault:8200"
+}
+```
+
+You application should parse the JSON representation and renew the `clientToken` using the `leaseDuration` as a guide.
+
 ## Configuration
 The project consists of 2 containers, a service container what watches the Kubernetes cluster and pushes `secret_id`s to pods and an init container that
 receives the `secret_id` and exchanges it for an auth token. These 2 containers are configured using environment variables. The init container also requires
