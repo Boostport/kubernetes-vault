@@ -38,6 +38,11 @@ The token information is encoded as JSON and written to the file. Here's an exam
 
 You application should parse the JSON representation and renew the `clientToken` using the `leaseDuration` as a guide.
 
+## CA bundle
+If you are connecting to Vault over https (highly recommended for production), you will find the CA bundle for Vault in
+the file `ca.crt`. Use the CA bundle when connecting to Vault using your application, so that the identity of Vault is
+verified.
+
 ## Configuration
 The project consists of 2 containers, a controller container what watches the Kubernetes cluster and pushes `secret_id`s to pods and an init container that
 receives the `secret_id` and exchanges it for an auth token. These 2 containers are configured using environment variables. The init container also requires
@@ -59,10 +64,10 @@ configuration using Kubernetes annotations.
 
 ### Init container environment variables
 
-| Environment Variable  | Description                                                 | Required  | Default Value                                | Example                                 |
-|-----------------------|-------------------------------------------------------------|-----------|----------------------------------------------|-----------------------------------------|
-| VAULT_ROLE_ID         | The Vault role id.                                          | `yes`     | `none`                                       | `313b0821-4ff6-1df8-54dd-c3eea5d3b8b1`  |
-| TOKEN_PATH            | The location where the Vault token will be written          | `no`      | `/var/run/secrets/boostport.com/vault-token` | `/var/run/my/path`                      |
+| Environment Variable  | Description                                                                              | Required  | Default Value                                | Example                                 |
+|-----------------------|------------------------------------------------------------------------------------------|-----------|----------------------------------------------|-----------------------------------------|
+| VAULT_ROLE_ID         | The Vault role id.                                                                       | `yes`     | `none`                                       | `313b0821-4ff6-1df8-54dd-c3eea5d3b8b1`  |
+| CREDENTIALS_PATH      | The location where the Vault token and CA Bundle (if it exists) will be written          | `no`      | `/var/run/secrets/boostport.com`             | `/var/run/my/path`                      |
 
 ### Init container annotations
 

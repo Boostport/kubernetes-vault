@@ -49,12 +49,13 @@ type renewalResult struct {
 }
 
 type Vault struct {
-	vaultAddr string
-	token     string
-	client    *api.Client
-	tokenData *tokenData
-	logger    *logrus.Logger
-	shutdown  chan struct{}
+	vaultAddr    string
+	vaultRootCAs [][]byte
+	token        string
+	client       *api.Client
+	tokenData    *tokenData
+	logger       *logrus.Logger
+	shutdown     chan struct{}
 }
 
 func (v *Vault) GetSecretId(role string) (common.WrappedSecretId, error) {
@@ -73,11 +74,13 @@ func (v *Vault) GetSecretId(role string) (common.WrappedSecretId, error) {
 		CreationTime: s.WrapInfo.CreationTime,
 		TTL:          s.WrapInfo.TTL,
 		VaultAddr:    v.vaultAddr,
+		VaultCAs:     v.vaultRootCAs,
 	}, nil
 }
 
-func getVaultRootCAs(vaultAddr string, backends []string) (*x509.CertPool, error) {
+func getVaultRootCAs(vaultAddr string, backends []string) ([][]byte, *x509.CertPool, error) {
 
+	certs := [][]byte{}
 	pool := x509.NewCertPool()
 
 	httpClient := cleanhttp.DefaultPooledClient()
@@ -89,10 +92,10 @@ func getVaultRootCAs(vaultAddr string, backends []string) (*x509.CertPool, error
 
 		ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
 
-		res, err := ctxhttp.Get(ctx, httpClient, fmt.Sprintf("%s/%s/pki/ca/pem", vaultAddr, backend))
+		res, err := ctxhttp.Get(ctx, httpClient, fmt.Sprintf("%s/v1/%s/ca/pem", vaultAddr, backend))
 
 		if err != nil {
-			return pool, errors.Wrapf(err, "could not get root certificate for the back end (%s)", backend)
+			return certs, pool, errors.Wrapf(err, "could not get root certificate for the back end (%s)", backend)
 		}
 
 		defer res.Body.Close()
@@ -100,24 +103,27 @@ func getVaultRootCAs(vaultAddr string, backends []string) (*x509.CertPool, error
 		pem, err := ioutil.ReadAll(res.Body)
 
 		if err != nil {
-			return pool, errors.Wrap(err, "error reading response body")
+			return certs, pool, errors.Wrap(err, "error reading response body")
 		}
+
+		certs = append(certs, pem)
 
 		pool.AppendCertsFromPEM(pem)
 	}
 
-	return pool, nil
+	return certs, pool, nil
 }
 
 func NewVault(vaultAddr string, token string, vaultCA []string, logger *logrus.Logger) (*Vault, error) {
 
 	var (
+		certs [][]byte
 		roots *x509.CertPool
 		err   error
 	)
 
 	if len(vaultCA) > 0 {
-		roots, err = getVaultRootCAs(vaultAddr, vaultCA)
+		certs, roots, err = getVaultRootCAs(vaultAddr, vaultCA)
 
 		if err != nil {
 			return nil, errors.Wrap(err, "could not get vault root CAs")
@@ -127,7 +133,7 @@ func NewVault(vaultAddr string, token string, vaultCA []string, logger *logrus.L
 	httpClient := cleanhttp.DefaultPooledClient()
 
 	if roots != nil {
-		tlsConfig := &tls.Config{InsecureSkipVerify: true}
+		tlsConfig := &tls.Config{RootCAs: roots}
 		httpClient.Transport.(*http.Transport).TLSClientConfig = tlsConfig
 	}
 
@@ -140,11 +146,12 @@ func NewVault(vaultAddr string, token string, vaultCA []string, logger *logrus.L
 	client.SetToken(token)
 
 	v := &Vault{
-		vaultAddr: vaultAddr,
-		token:     token,
-		client:    client,
-		logger:    logger,
-		shutdown:  make(chan struct{}),
+		vaultAddr:    vaultAddr,
+		vaultRootCAs: certs,
+		token:        token,
+		client:       client,
+		logger:       logger,
+		shutdown:     make(chan struct{}),
 	}
 
 	if err = v.parseToken(); err != nil {

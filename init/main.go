@@ -19,6 +19,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path"
 	"time"
 )
 
@@ -59,10 +60,10 @@ func main() {
 		}
 	}
 
-	tokenPath := os.Getenv("TOKEN_PATH")
+	credentialsPath := os.Getenv("CREDENTIALS_PATH")
 
-	if tokenPath == "" {
-		tokenPath = "/var/run/secrets/boostport.com/vault-token"
+	if credentialsPath == "" {
+		credentialsPath = "/var/run/secrets/boostport.com"
 	}
 
 	ip, err := common.ExternalIP()
@@ -85,7 +86,7 @@ func main() {
 		select {
 		case wrappedSecretId := <-result:
 
-			authToken, err := processWrappedSecretId(wrappedSecretId, roleId)
+			authToken, rootCAs, err := processWrappedSecretId(wrappedSecretId, roleId)
 
 			if err != nil {
 				logger.Debugf("Could not get auth token: %s", err)
@@ -99,11 +100,35 @@ func main() {
 				os.Exit(1)
 			}
 
+			tokenPath := path.Join(credentialsPath, "vault-token")
+
 			err = ioutil.WriteFile(tokenPath, b, 0444)
 
 			if err != nil {
 				logger.Debugf("Could not write auth token to path (%s): %s", tokenPath, err)
 				os.Exit(1)
+			}
+
+			concatenatedBundle := []byte{}
+
+			for i, cert := range rootCAs {
+				if i != 0 {
+					concatenatedBundle = append(concatenatedBundle, []byte("\n")...)
+				}
+
+				concatenatedBundle = append(concatenatedBundle, cert...)
+			}
+
+			if len(concatenatedBundle) > 0 {
+
+				caBundlePath := path.Join(credentialsPath, "ca.crt")
+
+				err = ioutil.WriteFile(caBundlePath, concatenatedBundle, 0444)
+
+				if err != nil {
+					logger.Debugf("Could not write CA bundle to path (%s): %s", caBundlePath, err)
+					os.Exit(1)
+				}
 			}
 
 			logger.Debug("Successfully created the vault token. Exiting.")
@@ -169,30 +194,50 @@ func startHTTPServer(certificate tls.Certificate, logger *logrus.Logger, wrapped
 	server.ListenAndServeTLS("", "")
 }
 
-func processWrappedSecretId(wrappedSecretId common.WrappedSecretId, roleId string) (authToken, error) {
+func processWrappedSecretId(wrappedSecretId common.WrappedSecretId, roleId string) (authToken, [][]byte, error) {
+
+	rootCAs := [][]byte{}
 
 	if err := wrappedSecretId.Validate(); err != nil {
-		return authToken{}, errors.Wrap(err, "could not validate wrapped secret_id")
+		return authToken{}, rootCAs, errors.Wrap(err, "could not validate wrapped secret_id")
 	}
 
-	client, err := api.NewClient(&api.Config{Address: wrappedSecretId.VaultAddr, HttpClient: cleanhttp.DefaultPooledClient()})
+	var roots *x509.CertPool
+
+	if len(wrappedSecretId.VaultCAs) > 0 {
+		roots = x509.NewCertPool()
+
+		for _, cert := range wrappedSecretId.VaultCAs {
+			roots.AppendCertsFromPEM([]byte(cert))
+			rootCAs = append(rootCAs, []byte(cert))
+		}
+	}
+
+	httpClient := cleanhttp.DefaultPooledClient()
+
+	if roots != nil {
+		tlsConfig := &tls.Config{RootCAs: roots}
+		httpClient.Transport.(*http.Transport).TLSClientConfig = tlsConfig
+	}
+
+	client, err := api.NewClient(&api.Config{Address: wrappedSecretId.VaultAddr, HttpClient: httpClient})
 
 	client.SetToken(wrappedSecretId.Token)
 
 	if err != nil {
-		return authToken{}, errors.Wrap(err, "could not create vault client")
+		return authToken{}, rootCAs, errors.Wrap(err, "could not create vault client")
 	}
 
 	secret, err := client.Logical().Unwrap("")
 
 	if err != nil {
-		return authToken{}, errors.Wrap(err, "error unwrapping secret_id")
+		return authToken{}, rootCAs, errors.Wrap(err, "error unwrapping secret_id")
 	}
 
 	secretId, ok := secret.Data["secret_id"]
 
 	if !ok {
-		return authToken{}, errors.New("Wrapped response is missing secret_id")
+		return authToken{}, rootCAs, errors.New("Wrapped response is missing secret_id")
 	}
 
 	token, err := client.Logical().Write("auth/approle/login", map[string]interface{}{
@@ -201,7 +246,7 @@ func processWrappedSecretId(wrappedSecretId common.WrappedSecretId, roleId strin
 	})
 
 	if err != nil {
-		return authToken{}, errors.Wrap(err, "could not log in using role_id and secret_id")
+		return authToken{}, rootCAs, errors.Wrap(err, "could not log in using role_id and secret_id")
 	}
 
 	secretAuth := token.Auth
@@ -212,7 +257,7 @@ func processWrappedSecretId(wrappedSecretId common.WrappedSecretId, roleId strin
 		LeaseDuration: secretAuth.LeaseDuration,
 		Renewable:     secretAuth.Renewable,
 		VaultAddr:     wrappedSecretId.VaultAddr,
-	}, nil
+	}, rootCAs, nil
 }
 
 func generateCertificate(ip net.IP, duration time.Duration) (tls.Certificate, error) {
