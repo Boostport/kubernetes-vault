@@ -45,16 +45,17 @@ configuration using Kubernetes annotations.
 
 ### Kubernetes-Vault environment variables
 
-| Environment Variable  | Description                                                               | Required   | Default Value                | Example                                 |
-|-----------------------|---------------------------------------------------------------------------|------------|------------------------------|-----------------------------------------|
-| RAFT_DIR              | Directory to store raft information.                                      | `no`       | `/var/lib/kubernetes-vault/` | `/var/my/dir`                           |
-| VAULT_TOKEN           | Periodic Vault token to talk to Vault.                                    | `yes`      | `none`                       | `91526d9b-4850-3405-02a8-aa29e74e17a5`  |
-| VAULT_ADDR            | Address of the Vault server.                                              | `yes`      | `none`                       | `https://vault:8200`                    |
-| KUBERNETES_NAMESPACE  | The namespace the deployment runs in. Used to discover other nodes.       | `yes`      | `none`                       | `default`                               |
-| KUBERNETES_SERVICE    | The service or headless service the deployment is in. Used for discovery. | `yes`      | `none`                       | `kubernetes-vault`                      |
-| VAULT_CA_BACKEND      | The PKI backend to issue TLS certificates for the metrics endpoint.       | `no`       | `none`                       | `root-ca`                               |
-| VAULT_CA_ROLE         | The Vault role of VAULT_CA_BACKEND to issue certificates.                 | `no`       | `none`                       | `kubernetes-vault`                      |
-| VAULT_CLIENT_CAS      | A comma separated list of PKI backends to trust as Certificate roots.     | `no`       | `none`                       | `root-ca1,root-ca2`                     |
+| Environment Variable   | Description                                                                                            | Required   | Default Value                | Example                                 |
+|------------------------|--------------------------------------------------------------------------------------------------------|------------|------------------------------|-----------------------------------------|
+| RAFT_DIR               | Directory to store raft information.                                                                   | `no`       | `/var/lib/kubernetes-vault/` | `/var/my/dir`                           |
+| VAULT_TOKEN            | Periodic Vault token to talk to Vault.                                                                 | `yes`      | `none`                       | `91526d9b-4850-3405-02a8-aa29e74e17a5`  |
+| VAULT_ADDR             | Address of the Vault server.                                                                           | `yes`      | `none`                       | `https://vault:8200`                    |
+| KUBERNETES_NAMESPACE   | The namespace the deployment runs in. Used to discover other nodes.                                    | `yes`      | `none`                       | `default`                               |
+| KUBERNETES_SERVICE     | The service or headless service the deployment is in. Used for discovery.                              | `yes`      | `none`                       | `kubernetes-vault`                      |
+| VAULT_CA_BACKENDS      | A comma-seperated list of PKI backends to get the root CAs used by vault.                              | `no`       | `none`                       | `root-ca1,root-ca2`                     |
+| CERT_BACKEND           | The PKI backend to be used to generated a certificate for Kubernetes-Vault                             | `no`       | `none`                       | `intermediate-ca`                       |
+| CERT_ROLE              | The PKI role to be used to issue certificates for Kubernetes-Vault                                     | `no`       | `none`                       | `kubernetes-vault`                      |
+| PROMETHEUS_CA_BACKENDS | A comma separated list of PKI backends to trust for TLS client authentication to the metrics endpoint. | `no`       | `none`                       | `root-ca1,root-ca2`                     |
 
 ### Init container environment variables
 

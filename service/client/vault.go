@@ -13,7 +13,11 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
+	"golang.org/x/net/context"
+	"golang.org/x/net/context/ctxhttp"
+	"io/ioutil"
 	"net"
+	"net/http"
 	"os"
 	"regexp"
 	"time"
@@ -31,6 +35,17 @@ type tokenData struct {
 	Renewable   bool     `mapstructure:"renewable"`
 	Policies    []string `mapstructure:"policies"`
 	Role        string   `mapstructure:"role"`
+}
+
+type RenewalConfig struct {
+	initialTTL     int
+	counter        prometheus.Counter
+	failureCounter prometheus.Counter
+}
+
+type renewalResult struct {
+	ttl  int
+	data interface{}
 }
 
 type Vault struct {
@@ -61,9 +76,66 @@ func (v *Vault) GetSecretId(role string) (common.WrappedSecretId, error) {
 	}, nil
 }
 
-func NewVault(vaultAddr string, token string, logger *logrus.Logger) (*Vault, error) {
+func getVaultRootCAs(vaultAddr string, backends []string) (*x509.CertPool, error) {
 
-	client, err := api.NewClient(&api.Config{Address: vaultAddr, HttpClient: cleanhttp.DefaultPooledClient()})
+	pool := x509.NewCertPool()
+
+	httpClient := cleanhttp.DefaultPooledClient()
+	tlsConfig := &tls.Config{InsecureSkipVerify: true}
+
+	httpClient.Transport.(http.Transport).TLSClientConfig = tlsConfig
+
+	for _, backend := range backends {
+
+		ctx, err := context.WithTimeout(context.Background(), 30*time.Second)
+
+		if err != nil {
+			return pool, errors.Wrap(err, "could not create context")
+		}
+
+		res, err := ctxhttp.Get(ctx, httpClient, fmt.Sprintf("%s/%s/pki/ca/pem", vaultAddr, backend))
+
+		if err != nil {
+			return pool, errors.Wrapf(err, "could not get root certificate for the back end (%s)", backend)
+		}
+
+		defer res.Body.Close()
+
+		pem, err := ioutil.ReadAll(res.Body)
+
+		if err != nil {
+			return pool, errors.Wrap(err, "error reading response body")
+		}
+
+		pool.AppendCertsFromPEM(pem)
+	}
+
+	return pool, nil
+}
+
+func NewVault(vaultAddr string, token string, vaultCA []string, logger *logrus.Logger) (*Vault, error) {
+
+	var (
+		roots *x509.CertPool
+		err   error
+	)
+
+	if len(vaultCA) > 0 {
+		roots, err = getVaultRootCAs(vaultAddr, vaultCA)
+
+		if err != nil {
+			return nil, errors.Wrap(err, "could not get vault root CAs")
+		}
+	}
+
+	httpClient := cleanhttp.DefaultPooledClient()
+
+	if roots != nil {
+		tlsConfig := &tls.Config{InsecureSkipVerify: true}
+		httpClient.Transport.(http.Transport).TLSClientConfig = tlsConfig
+	}
+
+	client, err := api.NewClient(&api.Config{Address: vaultAddr, HttpClient: httpClient})
 
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create vault client")
@@ -202,47 +274,89 @@ func (v *Vault) validateRole(role string) error {
 	return mErr.ErrorOrNil()
 }
 
-func (v *Vault) renewToken() {
+func (v *Vault) renew(renewalConfig RenewalConfig, renewal func() (renewalResult, error), success func(renewalResult), failure func(renewalResult, error)) {
 
-	nextRenewal := time.Duration(v.tokenData.TTL/2) * time.Second
-	timer := time.NewTimer(nextRenewal)
+	go func(initialTTL int) {
 
-	for {
-		select {
-		case <-timer.C:
-			exp := backoff.NewExponentialBackOff()
-			maxElapsedTime := calculateMaxElapsedTime(nextRenewal)
-			exp.MaxElapsedTime = maxElapsedTime
+		nextRenewal := time.Duration(initialTTL/2) * time.Second
+		timer := time.NewTimer(nextRenewal)
 
-			// Perform the renewal with backoff
-			op := func() error {
+		for {
+			select {
+			case <-timer.C:
 
-				s, err := v.client.Auth().Token().RenewSelf(0)
+				exp := backoff.NewExponentialBackOff()
+				maxElapsedTime := calculateMaxElapsedTime(nextRenewal)
+				exp.MaxElapsedTime = maxElapsedTime
 
-				if err != nil {
-					return errors.Wrap(err, "Error renewing vault token: %s")
+				var (
+					result renewalResult
+					err    error
+				)
+
+				// Perform the renewal with backoff
+				op := func() error {
+					result, err = renewal()
+
+					if err != nil {
+						return errors.Wrap(err, "could not complete renewal operation")
+					}
+
+					return nil
 				}
 
-				ttl := int64(s.Auth.LeaseDuration)
-				nextRenewal = time.Duration(ttl/2) * time.Second
-				timer.Reset(nextRenewal)
+				err = backoff.Retry(op, exp)
 
-				return nil
+				renewalConfig.counter.Inc()
+
+				if err != nil {
+					renewalConfig.failureCounter.Inc()
+					failure(result)
+					nextRenewal = 1 * time.Minute
+				} else {
+					success(result)
+					nextRenewal = time.Duration(result.ttl/2) * time.Second
+				}
+
+			case <-v.shutdown:
+				return
 			}
-
-			err := backoff.Retry(op, exp)
-
-			tokenRenewalRequests.Inc()
-
-			if err != nil {
-				tokenRenewalFailures.Inc()
-				v.logger.Infof("Could not renew auth token: %s", err)
-			}
-
-		case <-v.shutdown:
-			return
 		}
+
+	}(renewalConfig.initialTTL)
+}
+
+func (v *Vault) renewToken() {
+
+	renewalConfig := RenewalConfig{
+		initialTTL:     v.tokenData.TTL,
+		counter:        tokenRenewalRequests,
+		failureCounter: tokenRenewalFailures,
 	}
+
+	renewal := func() (renewalResult, error) {
+
+		renewalResults := renewalResult{}
+
+		s, err := v.client.Auth().Token().RenewSelf(0)
+
+		if err != nil {
+			return renewalResults, errors.Wrap(err, "error renewing vault token")
+		}
+
+		ttl := int64(s.Auth.LeaseDuration)
+		renewalResults.ttl = ttl
+
+		return renewalResults, nil
+	}
+
+	success := func(renewalResult renewalResult) {}
+
+	failure := func(renewalResult RenewalConfig, err error) {
+		v.logger.Infof("Could not renew auth token: %s", err)
+	}
+
+	v.renew(renewalConfig, renewal, success, failure)
 }
 
 func (v *Vault) issueCertificate(ip net.IP, backend string, role string) (tls.Certificate, int, error) {
@@ -295,58 +409,37 @@ func (v *Vault) GetAndRenewCertificate(ip net.IP, backend string, role string) (
 
 	ch <- cert
 
-	go func(initialTTL int, ch chan<- tls.Certificate) {
+	renewal := func() (renewalResult, error) {
 
-		var (
-			cert tls.Certificate
-			ttl  int
-			err  error
-		)
+		renewalResults := renewalResult{}
 
-		nextRenewal := time.Duration(float64(initialTTL)*0.75) * time.Second
-		timer := time.NewTimer(nextRenewal)
+		cert, ttl, err = v.issueCertificate(ip, backend, role)
 
-		for {
-			select {
-			case <-timer.C:
-				exp := backoff.NewExponentialBackOff()
-				maxElapsedTime := calculateMaxElapsedTime(nextRenewal)
-				exp.MaxElapsedTime = maxElapsedTime
-
-				// Perform the renewal with backoff
-				op := func() error {
-
-					cert, ttl, err = v.issueCertificate(ip, backend, role)
-
-					if err != nil {
-						return err
-					}
-
-					return nil
-				}
-
-				err = backoff.Retry(op, exp)
-
-				certificateRenewalRequests.Inc()
-
-				if err != nil {
-					certificateRenewalFailures.Inc()
-
-					v.logger.Infof("Could not renew certificate: %s", err)
-					nextRenewal = 1 * time.Minute
-				} else {
-					nextRenewal = time.Duration(float64(ttl/2)) * time.Second
-				}
-
-				timer.Reset(nextRenewal)
-
-				ch <- cert
-
-			case <-v.shutdown:
-				return
-			}
+		if err != nil {
+			return renewalResults, err
 		}
-	}(ttl, ch)
+
+		renewalResults.ttl = ttl
+		renewalResults.data = cert
+
+		return renewalResults, nil
+	}
+
+	renewalConfig := RenewalConfig{
+		initialTTL:     ttl,
+		counter:        certificateRenewalRequests,
+		failureCounter: certificateRenewalFailures,
+	}
+
+	success := func(renewalResult renewalResult) {
+		ch <- renewalResult.data.(tls.Certificate)
+	}
+
+	failure := func(renewalResult RenewalConfig, err error) {
+		v.logger.Infof("Could not renew certificate: %s", err)
+	}
+
+	v.renew(renewalConfig, renewal, success, failure)
 
 	return ch, nil
 }
