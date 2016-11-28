@@ -38,13 +38,13 @@ type tokenData struct {
 }
 
 type RenewalConfig struct {
-	initialTTL     int
+	initialTTL     int64
 	counter        prometheus.Counter
 	failureCounter prometheus.Counter
 }
 
 type renewalResult struct {
-	ttl  int
+	ttl  int64
 	data interface{}
 }
 
@@ -83,15 +83,11 @@ func getVaultRootCAs(vaultAddr string, backends []string) (*x509.CertPool, error
 	httpClient := cleanhttp.DefaultPooledClient()
 	tlsConfig := &tls.Config{InsecureSkipVerify: true}
 
-	httpClient.Transport.(http.Transport).TLSClientConfig = tlsConfig
+	httpClient.Transport.(*http.Transport).TLSClientConfig = tlsConfig
 
 	for _, backend := range backends {
 
-		ctx, err := context.WithTimeout(context.Background(), 30*time.Second)
-
-		if err != nil {
-			return pool, errors.Wrap(err, "could not create context")
-		}
+		ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
 
 		res, err := ctxhttp.Get(ctx, httpClient, fmt.Sprintf("%s/%s/pki/ca/pem", vaultAddr, backend))
 
@@ -132,7 +128,7 @@ func NewVault(vaultAddr string, token string, vaultCA []string, logger *logrus.L
 
 	if roots != nil {
 		tlsConfig := &tls.Config{InsecureSkipVerify: true}
-		httpClient.Transport.(http.Transport).TLSClientConfig = tlsConfig
+		httpClient.Transport.(*http.Transport).TLSClientConfig = tlsConfig
 	}
 
 	client, err := api.NewClient(&api.Config{Address: vaultAddr, HttpClient: httpClient})
@@ -276,7 +272,7 @@ func (v *Vault) validateRole(role string) error {
 
 func (v *Vault) renew(renewalConfig RenewalConfig, renewal func() (renewalResult, error), success func(renewalResult), failure func(renewalResult, error)) {
 
-	go func(initialTTL int) {
+	go func(initialTTL int64) {
 
 		nextRenewal := time.Duration(initialTTL/2) * time.Second
 		timer := time.NewTimer(nextRenewal)
@@ -311,7 +307,7 @@ func (v *Vault) renew(renewalConfig RenewalConfig, renewal func() (renewalResult
 
 				if err != nil {
 					renewalConfig.failureCounter.Inc()
-					failure(result)
+					failure(result, err)
 					nextRenewal = 1 * time.Minute
 				} else {
 					success(result)
@@ -329,7 +325,7 @@ func (v *Vault) renew(renewalConfig RenewalConfig, renewal func() (renewalResult
 func (v *Vault) renewToken() {
 
 	renewalConfig := RenewalConfig{
-		initialTTL:     v.tokenData.TTL,
+		initialTTL:     int64(v.tokenData.TTL),
 		counter:        tokenRenewalRequests,
 		failureCounter: tokenRenewalFailures,
 	}
@@ -352,7 +348,7 @@ func (v *Vault) renewToken() {
 
 	success := func(renewalResult renewalResult) {}
 
-	failure := func(renewalResult RenewalConfig, err error) {
+	failure := func(renewalResult renewalResult, err error) {
 		v.logger.Infof("Could not renew auth token: %s", err)
 	}
 
@@ -419,14 +415,14 @@ func (v *Vault) GetAndRenewCertificate(ip net.IP, backend string, role string) (
 			return renewalResults, err
 		}
 
-		renewalResults.ttl = ttl
+		renewalResults.ttl = int64(ttl)
 		renewalResults.data = cert
 
 		return renewalResults, nil
 	}
 
 	renewalConfig := RenewalConfig{
-		initialTTL:     ttl,
+		initialTTL:     int64(ttl),
 		counter:        certificateRenewalRequests,
 		failureCounter: certificateRenewalFailures,
 	}
@@ -435,7 +431,7 @@ func (v *Vault) GetAndRenewCertificate(ip net.IP, backend string, role string) (
 		ch <- renewalResult.data.(tls.Certificate)
 	}
 
-	failure := func(renewalResult RenewalConfig, err error) {
+	failure := func(renewalResult renewalResult, err error) {
 		v.logger.Infof("Could not renew certificate: %s", err)
 	}
 
