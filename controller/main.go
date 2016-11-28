@@ -3,9 +3,9 @@ package main
 import (
 	"crypto/x509"
 	"github.com/Boostport/kubernetes-vault/common"
-	"github.com/Boostport/kubernetes-vault/service/client"
-	"github.com/Boostport/kubernetes-vault/service/cluster"
-	"github.com/Boostport/kubernetes-vault/service/metrics"
+	"github.com/Boostport/kubernetes-vault/controller/client"
+	"github.com/Boostport/kubernetes-vault/controller/cluster"
+	"github.com/Boostport/kubernetes-vault/controller/metrics"
 	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes/client-go/pkg/util/rand"
 	"os"

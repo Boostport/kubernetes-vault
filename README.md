@@ -4,7 +4,7 @@ The Kubernetes-Vault project allows pods to automatically receive a Vault token 
 ![flow diagram](flow-diagram.png)
 
 ## Highlights
-* Secure by default. The Kubernetes-Vault service does not allow using root tokens to authenticate against Vault.
+* Secure by default. The Kubernetes-Vault controller does not allow using root tokens to authenticate against Vault.
 * Prometheus metrics endpoint over http or https, with optional TLS client authentication.
 * High availability mode using Raft, so that if the leader goes down, a follower can take over immediately.
 * Peer discovery using Kubernetes services and endpoints and gossip to propagate peer changes across the cluster.
@@ -13,7 +13,7 @@ The Kubernetes-Vault project allows pods to automatically receive a Vault token 
 * Vault should be 0.6.3 and above.
 * You must use Kubernetes 1.4.0 and above as we rely on init containers (in beta) to accept the token.
 * You must generate a periodic token with the correct policy to generate `secret_id`s using the AppRole backend.
-* The Kubernetes-Vault service uses the Kubernetes service account to watch for new pods. This service account must have the appropriate permissions.
+* The Kubernetes-Vault controller uses the Kubernetes service account to watch for new pods. This service account must have the appropriate permissions.
 * Your app should use a [Vault client](https://www.vaultproject.io/docs/http/libraries.html) to renew the token and any secrets you request from Vault.
 * You should configure Vault to use HTTPS, so that the authentication token and any other secrets cannot be sniffed.
 
@@ -39,7 +39,7 @@ The token information is encoded as JSON and written to the file. Here's an exam
 You application should parse the JSON representation and renew the `clientToken` using the `leaseDuration` as a guide.
 
 ## Configuration
-The project consists of 2 containers, a service container what watches the Kubernetes cluster and pushes `secret_id`s to pods and an init container that
+The project consists of 2 containers, a controller container what watches the Kubernetes cluster and pushes `secret_id`s to pods and an init container that
 receives the `secret_id` and exchanges it for an auth token. These 2 containers are configured using environment variables. The init container also requires
 configuration using Kubernetes annotations.
 
