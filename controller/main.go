@@ -84,8 +84,8 @@ func main() {
 		logger.Fatalf("Could not create the kubernetes client: %s", err)
 	}
 
-	// Wait between 0 and 5 seconds before discovering other nodes
-	time.Sleep(time.Duration(rand.Intn(5)) * time.Second)
+	// Wait between 3 and 10 seconds before discovering other nodes
+	time.Sleep(time.Duration(rand.Intn(7)+3) * time.Second)
 
 	nodes, err := kube.Discover(kubeService)
 
