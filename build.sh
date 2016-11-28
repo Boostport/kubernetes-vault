@@ -10,7 +10,7 @@ curl https://glide.sh/get | sh
 glide install --strip-vendor
 
 # Build the service
-cd service && go build -a -o kubernetes-vault
+cd controller && go build -a -o kubernetes-vault
 
 # Build the init container
 cd ../init && go build -a -o kubernetes-vault-init

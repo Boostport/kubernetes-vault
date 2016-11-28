@@ -28,7 +28,7 @@ spec:
     spec:
       containers:
       - name: kubernetes-vault
-        image: boostport/kubernetes-vault:0.1.0
+        image: boostport/kubernetes-vault:0.2.0
         env:
         - name: VAULT_TOKEN
           value: 91526d9b-4850-3405-02a8-aa29e74e17a5
@@ -40,7 +40,7 @@ spec:
               fieldPath: metadata.namespace
         - name: KUBERNETES_SERVICE
           value: kubernetes-vault
-        - name: VAULT_CA_BACKEND
+        - name: CERT_BACKEND
           value: intermediate-ca
-        - name: VAULT_CA_ROLE
+        - name: CERT_ROLE
           value: kubernetes-vault

@@ -7,12 +7,13 @@ import (
 	"io/ioutil"
 	"os"
 	"os/signal"
+	"path"
 	"syscall"
 	"text/tabwriter"
 )
 
 const (
-	tokenPath = "/var/run/secrets/boostport.com/vault-token"
+	credentialsPath = "/var/run/secrets/boostport.com"
 )
 
 type authToken struct {
@@ -28,6 +29,7 @@ func main() {
 	logger := logrus.New()
 	logger.Level = logrus.DebugLevel
 
+	tokenPath := path.Join(credentialsPath, "vault-token")
 	content, err := ioutil.ReadFile(tokenPath)
 
 	if err != nil {
@@ -49,6 +51,18 @@ func main() {
 	fmt.Fprintf(w, "Lease Duration:\t%d\n", token.LeaseDuration)
 	fmt.Fprintf(w, "Renewable:\t%t\n", token.Renewable)
 	fmt.Fprintf(w, "Vault Address:\t%s\n", token.VaultAddr)
+
+	caBundlePath := path.Join(credentialsPath, "ca.crt")
+
+	_, err = os.Stat(caBundlePath)
+
+	caBundleExists := true
+
+	if err != nil && os.IsNotExist(err) {
+		caBundleExists = false
+	}
+
+	fmt.Fprintf(w, "CA Bundle Exists:\t%t\n", caBundleExists)
 
 	w.Flush()
 

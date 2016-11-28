@@ -3,9 +3,9 @@ package main
 import (
 	"crypto/x509"
 	"github.com/Boostport/kubernetes-vault/common"
-	"github.com/Boostport/kubernetes-vault/service/client"
-	"github.com/Boostport/kubernetes-vault/service/cluster"
-	"github.com/Boostport/kubernetes-vault/service/metrics"
+	"github.com/Boostport/kubernetes-vault/controller/client"
+	"github.com/Boostport/kubernetes-vault/controller/cluster"
+	"github.com/Boostport/kubernetes-vault/controller/metrics"
 	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes/client-go/pkg/util/rand"
 	"os"
@@ -50,18 +50,20 @@ func main() {
 		logger.Fatal("The VAULT_ADDR environment variable is not set.")
 	}
 
-	caBackend := os.Getenv("VAULT_CA_BACKEND")
+	vaultCAs := os.Getenv("VAULT_CA_BACKENDS")
 
-	caRole := os.Getenv("VAULT_CA_ROLE")
+	certBackend := os.Getenv("CERT_BACKEND")
 
-	if (caRole != "") != (caBackend != "") {
-		logger.Fatalf("The VAULT_CA_BACKEND and VAULT_CA_ROLE environment variables must both be provided if you want to serve the metrics endpoint over https.")
+	certRole := os.Getenv("CERT_ROLE")
+
+	if (certRole != "") != (certBackend != "") {
+		logger.Fatalf("The CERT_BACKEND and CERT_ROLE environment variables must both be provided if you want to serve the metrics endpoint over https.")
 	}
 
-	clientCAs := os.Getenv("VAULT_CLIENT_CAS")
+	prometheusCAs := os.Getenv("PROMETHEUS_CA_BACKENDS")
 
-	if caRole == "" && caBackend == "" && clientCAs != "" {
-		logger.Fatalf("The VAULT_CA_BACKEND and VAULT_CA_ROLE environment variables must be set if you want to use VAULT_CLIENT_CAS.")
+	if certRole == "" && certBackend == "" && prometheusCAs != "" {
+		logger.Fatalf("The CERT_BACKEND and CERT_ROLE environment variables must be set if you want to use PROMETHEUS_CA_BACKENDS.")
 	}
 
 	kubeNamespace := os.Getenv("KUBERNETES_NAMESPACE")
@@ -82,8 +84,8 @@ func main() {
 		logger.Fatalf("Could not create the kubernetes client: %s", err)
 	}
 
-	// Wait between 0 and 5 seconds before discovering other nodes
-	time.Sleep(time.Duration(rand.Intn(5)) * time.Second)
+	// Wait between 3 and 10 seconds before discovering other nodes
+	time.Sleep(time.Duration(rand.Intn(7)+3) * time.Second)
 
 	nodes, err := kube.Discover(kubeService)
 
@@ -93,14 +95,15 @@ func main() {
 
 	logger.Debugf("Discovered %d nodes: %s", len(nodes), nodes)
 
-	vault, err := client.NewVault(vaultAddr, vaultToken, logger)
+	vault, err := client.NewVault(vaultAddr, vaultToken, strings.Split(vaultCAs, ","), logger)
 
 	if err != nil {
 		logger.Fatalf("Could not create the vault client: %s", err)
 	}
 
-	if caBackend != "" && caRole != "" {
-		certCh, err := vault.GetAndRenewCertificate(bindAddr, caBackend, caRole)
+	if certBackend != "" && certRole != "" {
+
+		certCh, err := vault.GetAndRenewCertificate(bindAddr, certBackend, certRole)
 
 		if err != nil {
 			logger.Fatalf("Could not get certificate for metrics server: %s", err)
@@ -108,10 +111,9 @@ func main() {
 
 		var roots *x509.CertPool
 
-		if clientCAs != "" {
-			clientRootCAs := strings.Split(clientCAs, ",")
+		if prometheusCAs != "" {
 
-			roots, err = vault.RootCertificates(clientRootCAs)
+			roots, err = vault.RootCertificates(strings.Split(prometheusCAs, ","))
 
 			if err != nil {
 				logger.Fatalf("Could not get root certificates: %s", err)

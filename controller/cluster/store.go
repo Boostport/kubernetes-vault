@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"fmt"
-	"github.com/Boostport/kubernetes-vault/service/client"
+	"github.com/Boostport/kubernetes-vault/controller/client"
 	"github.com/Sirupsen/logrus"
 	"github.com/cenkalti/backoff"
 	"github.com/hashicorp/go-cleanhttp"
