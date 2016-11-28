@@ -321,6 +321,8 @@ func (v *Vault) renew(renewalConfig RenewalConfig, renewal func() (renewalResult
 					nextRenewal = time.Duration(result.ttl/2) * time.Second
 				}
 
+				timer.Reset(nextRenewal)
+
 			case <-v.shutdown:
 				return
 			}
