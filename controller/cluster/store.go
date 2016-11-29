@@ -17,6 +17,7 @@ import (
 	"golang.org/x/net/context"
 	"golang.org/x/net/context/ctxhttp"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"path"
 	"strconv"
@@ -290,6 +291,8 @@ func (s *Store) pushSecretIdToPod(pod client.Pod) {
 		}
 
 		defer response.Body.Close()
+
+		io.Copy(ioutil.Discard, response.Body)
 
 		return nil
 	}
