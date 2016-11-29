@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-VERSION=0.2.0
+VERSION=0.2.1
 
 # Build the binaries
 docker run --rm -v $PWD:/go/src/github.com/Boostport/kubernetes-vault -w /go/src/github.com/Boostport/kubernetes-vault golang:1.7-alpine ./build.sh
