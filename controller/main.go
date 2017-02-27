@@ -2,17 +2,18 @@ package main
 
 import (
 	"crypto/x509"
-	"github.com/Boostport/kubernetes-vault/common"
-	"github.com/Boostport/kubernetes-vault/controller/client"
-	"github.com/Boostport/kubernetes-vault/controller/cluster"
-	"github.com/Boostport/kubernetes-vault/controller/metrics"
-	"github.com/Sirupsen/logrus"
-	"github.com/kubernetes/client-go/pkg/util/rand"
+	"math/rand"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/Boostport/kubernetes-vault/common"
+	"github.com/Boostport/kubernetes-vault/controller/client"
+	"github.com/Boostport/kubernetes-vault/controller/cluster"
+	"github.com/Boostport/kubernetes-vault/controller/metrics"
+	"github.com/Sirupsen/logrus"
 )
 
 func main() {
