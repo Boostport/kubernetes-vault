@@ -1,5 +1,5 @@
 hash: 721245555ffb7a65b8fc4e9c9636ed47770fefec05db9299a457d8db11af444f
-updated: 2017-02-27T13:04:31.7439863+11:00
+updated: 2017-02-28T11:07:18.7643429+11:00
 imports:
 - name: cloud.google.com/go
   version: 3b1ae45394a234c385be014e9a488f2bb6eef821
@@ -14,6 +14,8 @@ imports:
   - quantile
 - name: github.com/blang/semver
   version: 31b736133b98f26d5e078ec9eb591666edfd091f
+- name: github.com/boltdb/bolt
+  version: e9cf4fae01b5a8ff89d0ec6b32f0d9c9f79aefdd
 - name: github.com/cenkalti/backoff
   version: 32cd0c5b3aef12c76ed64aaf678f6c79736be7dc
 - name: github.com/coreos/go-oidc
@@ -46,6 +48,8 @@ imports:
   - swagger
 - name: github.com/fatih/structs
   version: a720dfa8df582c51dee1b36feabb906bde1588bd
+- name: github.com/fsnotify/fsnotify
+  version: a904159b9206978bb6d53fcc7a769e5cd726c737
 - name: github.com/ghodss/yaml
   version: 73d445a93680fa1a78ae23a5839bad48f32ba1ee
 - name: github.com/go-openapi/jsonpointer
@@ -111,10 +115,14 @@ imports:
   - api
   - helper/compressutil
   - helper/jsonutil
+- name: github.com/inconshreveable/mousetrap
+  version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
 - name: github.com/jonboulle/clockwork
   version: 72f9bd7c4e0c2a40055ab3d0f09654f730cce982
 - name: github.com/juju/ratelimit
   version: 77ed1c8a01217656d2080ad51981f6e99adaa177
+- name: github.com/magiconair/properties
+  version: b3b15ef068fd0b17ddf408a23669f20811d194d2
 - name: github.com/mailru/easyjson
   version: d5b7844b561a7bc640052f1b935f7b800330d7e0
   subpackages:
@@ -126,7 +134,7 @@ imports:
   subpackages:
   - pbutil
 - name: github.com/miekg/dns
-  version: 0b729df06cb29cf7a3ff59b876e9a2ecb7fac2b1
+  version: eda6b320244f0700772bb765282381d17495e7d3
 - name: github.com/mitchellh/go-homedir
   version: b8bc1bf767474819792c23f32d8286a45736f1c6
 - name: github.com/mitchellh/mapstructure
@@ -135,6 +143,10 @@ imports:
   version: aa2ec055abd10d26d539eb630a92241b781ce4bc
 - name: github.com/pborman/uuid
   version: ca53cad383cad2479bbba7f7a1a05797ec1386e4
+- name: github.com/pelletier/go-buffruneio
+  version: c37440a7cf42ac63b919c752ca73a85067e05992
+- name: github.com/pelletier/go-toml
+  version: 361678322880708ac144df8575e6f01144ba1404
 - name: github.com/pkg/errors
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: github.com/prometheus/client_golang
@@ -165,9 +177,17 @@ imports:
 - name: github.com/sethgrid/pester
   version: 2c5fb962da6113d0968907fd81dba3ca35151d1c
 - name: github.com/Sirupsen/logrus
-  version: c078b1e43f58d563c74cebe63c85789e76ddb627
+  version: 0208149b40d863d2c1a2f8fe5753096a9cf2cc8b
+- name: github.com/spf13/afero
+  version: 9be650865eab0c12963d8753212f4f9c66cdcf12
+  subpackages:
+  - mem
+- name: github.com/spf13/cast
+  version: f820543c3592e283e311a60d2a600a664e39f6f7
 - name: github.com/spf13/cobra
   version: 92ea23a837e66f46ac9e7d04fa826602b7b0a42d
+- name: github.com/spf13/jwalterweatherman
+  version: fa7ca7e836cf3a8bb4ebf799f472c12d7e903d66
 - name: github.com/spf13/pflag
   version: 5ccb023bc27df288a957c5e994cd44fd19619465
 - name: github.com/spf13/viper
@@ -193,7 +213,7 @@ imports:
   - jws
   - jwt
 - name: golang.org/x/sys
-  version: e4594059fe4cde2daf423055a596c2cd1e6c9adf
+  version: 8f0908ab3b2457e2e15403d3697c9ef5cb4b57a9
   subpackages:
   - unix
 - name: golang.org/x/text

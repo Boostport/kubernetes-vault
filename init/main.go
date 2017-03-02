@@ -9,11 +9,6 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
-	"github.com/Boostport/kubernetes-vault/common"
-	"github.com/Sirupsen/logrus"
-	"github.com/hashicorp/go-cleanhttp"
-	"github.com/hashicorp/vault/api"
-	"github.com/pkg/errors"
 	"io/ioutil"
 	"math/big"
 	"net"
@@ -21,6 +16,12 @@ import (
 	"os"
 	"path"
 	"time"
+
+	"github.com/Boostport/kubernetes-vault/common"
+	"github.com/Sirupsen/logrus"
+	"github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/vault/api"
+	"github.com/pkg/errors"
 )
 
 type authToken struct {
@@ -109,21 +110,11 @@ func main() {
 				os.Exit(1)
 			}
 
-			concatenatedBundle := []byte{}
-
-			for i, cert := range rootCAs {
-				if i != 0 {
-					concatenatedBundle = append(concatenatedBundle, []byte("\n")...)
-				}
-
-				concatenatedBundle = append(concatenatedBundle, cert...)
-			}
-
-			if len(concatenatedBundle) > 0 {
+			if len(rootCAs) > 0 {
 
 				caBundlePath := path.Join(credentialsPath, "ca.crt")
 
-				err = ioutil.WriteFile(caBundlePath, concatenatedBundle, 0444)
+				err = ioutil.WriteFile(caBundlePath, rootCAs, 0444)
 
 				if err != nil {
 					logger.Debugf("Could not write CA bundle to path (%s): %s", caBundlePath, err)
@@ -194,9 +185,9 @@ func startHTTPServer(certificate tls.Certificate, logger *logrus.Logger, wrapped
 	server.ListenAndServeTLS("", "")
 }
 
-func processWrappedSecretId(wrappedSecretId common.WrappedSecretId, roleId string) (authToken, [][]byte, error) {
+func processWrappedSecretId(wrappedSecretId common.WrappedSecretId, roleId string) (authToken, []byte, error) {
 
-	rootCAs := [][]byte{}
+	rootCAs := []byte{}
 
 	if err := wrappedSecretId.Validate(); err != nil {
 		return authToken{}, rootCAs, errors.Wrap(err, "could not validate wrapped secret_id")
@@ -207,10 +198,8 @@ func processWrappedSecretId(wrappedSecretId common.WrappedSecretId, roleId strin
 	if len(wrappedSecretId.VaultCAs) > 0 {
 		roots = x509.NewCertPool()
 
-		for _, cert := range wrappedSecretId.VaultCAs {
-			roots.AppendCertsFromPEM([]byte(cert))
-			rootCAs = append(rootCAs, []byte(cert))
-		}
+		roots.AppendCertsFromPEM([]byte(wrappedSecretId.VaultCAs))
+		rootCAs = wrappedSecretId.VaultCAs
 	}
 
 	httpClient := cleanhttp.DefaultPooledClient()

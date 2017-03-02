@@ -85,8 +85,8 @@ The token and various other information related to the token should be logged.
 Clean up: `kubectl delete -f deployments/sample-app.yaml -f deployments/kubernetes-vault.yaml`
 
 ## Further deployment options
-1. In this guide, we did not set up TLS client authentication for the metrics endpoint. To do so, simply set the `VAULT_CLIENT_CAS` environment
-variable for Kubernetes-Vault to a comma separated list of PKI backends configurered as Root CAs.
+In this guide, we did not set up TLS client authentication for the metrics endpoint. To do so, simply set the `vaultCABackends`
+or `caCert` in the `prometheus.tls` configuration.
 
 ## Best Practices
 See our documented [best practices](best-practices.md).

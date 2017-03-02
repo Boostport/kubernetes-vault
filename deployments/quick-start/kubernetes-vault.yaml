@@ -15,6 +15,25 @@ spec:
     - name: port
       port: 80
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kubernetes-vault
+data:
+  kubernetes-vault.yml: |-
+    vault:
+      addr: http://vault:8200
+      token: 91526d9b-4850-3405-02a8-aa29e74e17a5
+
+    kubernetes:
+      namespace: ${KUBERNETES_NAMESPACE}
+      service: kubernetes-vault
+
+    prometheus:
+      tls:
+        vaultCertBackend: intermediate-ca
+        vaultCertRole: kubernetes-vault
+---
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
@@ -28,19 +47,16 @@ spec:
     spec:
       containers:
       - name: kubernetes-vault
-        image: boostport/kubernetes-vault:0.2.0
+        image: boostport/kubernetes-vault:0.3.0
         env:
-        - name: VAULT_TOKEN
-          value: 91526d9b-4850-3405-02a8-aa29e74e17a5
-        - name: VAULT_ADDR
-          value: http://vault:8200
         - name: KUBERNETES_NAMESPACE
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
-        - name: KUBERNETES_SERVICE
-          value: kubernetes-vault
-        - name: CERT_BACKEND
-          value: intermediate-ca
-        - name: CERT_ROLE
-          value: kubernetes-vault
+        volumeMounts:
+        - name: config-volume
+          mountPath: /kubernetes-vault
+      volumes:
+        - name: config-volume
+          configMap:
+            name: kubernetes-vault

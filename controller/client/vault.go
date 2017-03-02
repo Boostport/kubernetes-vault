@@ -1,9 +1,17 @@
 package client
 
 import (
+	"bytes"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"io/ioutil"
+	"net"
+	"net/http"
+	"os"
+	"regexp"
+	"time"
+
 	"github.com/Boostport/kubernetes-vault/common"
 	"github.com/Sirupsen/logrus"
 	"github.com/cenkalti/backoff"
@@ -15,12 +23,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/net/context"
 	"golang.org/x/net/context/ctxhttp"
-	"io/ioutil"
-	"net"
-	"net/http"
-	"os"
-	"regexp"
-	"time"
 )
 
 const wrappedSecretIdTTL = "60s"
@@ -48,14 +50,89 @@ type renewalResult struct {
 	data interface{}
 }
 
+type RootCAResolver interface {
+	GetRootCAs() ([]byte, *x509.CertPool, error)
+}
+
+type VaultRootCAsResolver struct {
+	Backends  []string
+	VaultAddr string
+}
+
+func (v *VaultRootCAsResolver) GetRootCAs() ([]byte, *x509.CertPool, error) {
+	certs := []byte{}
+	buf := bytes.NewBuffer(certs)
+
+	pool := x509.NewCertPool()
+
+	httpClient := cleanhttp.DefaultPooledClient()
+	tlsConfig := &tls.Config{InsecureSkipVerify: true}
+
+	httpClient.Transport.(*http.Transport).TLSClientConfig = tlsConfig
+
+	for _, backend := range v.Backends {
+
+		ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
+
+		res, err := ctxhttp.Get(ctx, httpClient, fmt.Sprintf("%s/v1/%s/ca/pem", v.VaultAddr, backend))
+
+		if err != nil {
+			return buf.Bytes(), pool, errors.Wrapf(err, "could not get root certificate for the back end (%s)", backend)
+		}
+
+		defer res.Body.Close()
+
+		pem, err := ioutil.ReadAll(res.Body)
+
+		if err != nil {
+			return buf.Bytes(), pool, errors.Wrap(err, "error reading response body")
+		}
+
+		_, err = buf.WriteString("\n")
+
+		if err != nil {
+			return buf.Bytes(), pool, errors.Wrap(err, "error writing new line between certificates to buffer")
+		}
+
+		_, err = buf.Write(pem)
+
+		if err != nil {
+			return buf.Bytes(), pool, errors.Wrap(err, "error writing certificate to buffer")
+		}
+
+		pool.AppendCertsFromPEM(pem)
+	}
+
+	return buf.Bytes(), pool, nil
+}
+
+type ExternalRootCAsResolver struct {
+	CAFile string
+}
+
+func (e *ExternalRootCAsResolver) GetRootCAs() ([]byte, *x509.CertPool, error) {
+	pool := x509.NewCertPool()
+
+	certs, err := ioutil.ReadFile(e.CAFile)
+
+	if err != nil {
+		return certs, pool, errors.Wrapf(err, "could not read CA certificates from the file %s", e.CAFile)
+	}
+
+	pool.AppendCertsFromPEM(certs)
+
+	return certs, pool, nil
+}
+
 type Vault struct {
-	vaultAddr    string
-	vaultRootCAs [][]byte
-	token        string
-	client       *api.Client
-	tokenData    *tokenData
-	logger       *logrus.Logger
-	shutdown     chan struct{}
+	vaultAddr       string
+	vaultRootCAs    []byte
+	token           string
+	kubeServiceName string
+	client          *api.Client
+	tokenData       *tokenData
+	logger          *logrus.Logger
+	shutdown        chan struct{}
 }
 
 func (v *Vault) GetSecretId(role string) (common.WrappedSecretId, error) {
@@ -78,52 +155,16 @@ func (v *Vault) GetSecretId(role string) (common.WrappedSecretId, error) {
 	}, nil
 }
 
-func getVaultRootCAs(vaultAddr string, backends []string) ([][]byte, *x509.CertPool, error) {
-
-	certs := [][]byte{}
-	pool := x509.NewCertPool()
-
-	httpClient := cleanhttp.DefaultPooledClient()
-	tlsConfig := &tls.Config{InsecureSkipVerify: true}
-
-	httpClient.Transport.(*http.Transport).TLSClientConfig = tlsConfig
-
-	for _, backend := range backends {
-
-		ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
-
-		res, err := ctxhttp.Get(ctx, httpClient, fmt.Sprintf("%s/v1/%s/ca/pem", vaultAddr, backend))
-
-		if err != nil {
-			return certs, pool, errors.Wrapf(err, "could not get root certificate for the back end (%s)", backend)
-		}
-
-		defer res.Body.Close()
-
-		pem, err := ioutil.ReadAll(res.Body)
-
-		if err != nil {
-			return certs, pool, errors.Wrap(err, "error reading response body")
-		}
-
-		certs = append(certs, pem)
-
-		pool.AppendCertsFromPEM(pem)
-	}
-
-	return certs, pool, nil
-}
-
-func NewVault(vaultAddr string, token string, vaultCA []string, logger *logrus.Logger) (*Vault, error) {
+func NewVault(vaultAddr string, token string, kubeServiceName string, caResolver RootCAResolver, logger *logrus.Logger) (*Vault, error) {
 
 	var (
-		certs [][]byte
+		certs []byte
 		roots *x509.CertPool
 		err   error
 	)
 
-	if len(vaultCA) > 0 {
-		certs, roots, err = getVaultRootCAs(vaultAddr, vaultCA)
+	if caResolver != nil {
+		certs, roots, err = caResolver.GetRootCAs()
 
 		if err != nil {
 			return nil, errors.Wrap(err, "could not get vault root CAs")
@@ -146,12 +187,13 @@ func NewVault(vaultAddr string, token string, vaultCA []string, logger *logrus.L
 	client.SetToken(token)
 
 	v := &Vault{
-		vaultAddr:    vaultAddr,
-		vaultRootCAs: certs,
-		token:        token,
-		client:       client,
-		logger:       logger,
-		shutdown:     make(chan struct{}),
+		vaultAddr:       vaultAddr,
+		vaultRootCAs:    certs,
+		token:           token,
+		kubeServiceName: kubeServiceName,
+		client:          client,
+		logger:          logger,
+		shutdown:        make(chan struct{}),
 	}
 
 	if err = v.parseToken(); err != nil {
@@ -358,13 +400,15 @@ func (v *Vault) renewToken() {
 	success := func(renewalResult renewalResult) {}
 
 	failure := func(renewalResult renewalResult, err error) {
-		v.logger.Infof("Could not renew auth token: %s", err)
+		v.logger.Errorf("Could not renew auth token: %s", err)
 	}
 
 	v.renew(renewalConfig, renewal, success, failure)
 }
 
 func (v *Vault) issueCertificate(ip net.IP, backend string, role string) (tls.Certificate, int, error) {
+
+	serviceName := v.kubeServiceName
 
 	hostname, err := os.Hostname()
 
@@ -373,8 +417,9 @@ func (v *Vault) issueCertificate(ip net.IP, backend string, role string) (tls.Ce
 	}
 
 	secret, err := v.client.Logical().Write(fmt.Sprintf("%s/issue/%s", backend, role), map[string]interface{}{
-		"common_name": hostname,
+		"common_name": serviceName,
 		"ip_sans":     ip.String(),
+		"alt_names":   hostname,
 	})
 
 	if err != nil {
@@ -441,7 +486,7 @@ func (v *Vault) GetAndRenewCertificate(ip net.IP, backend string, role string) (
 	}
 
 	failure := func(renewalResult renewalResult, err error) {
-		v.logger.Infof("Could not renew certificate: %s", err)
+		v.logger.Errorf("Could not renew certificate: %s", err)
 	}
 
 	v.renew(renewalConfig, renewal, success, failure)

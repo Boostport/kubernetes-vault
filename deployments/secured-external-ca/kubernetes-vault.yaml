@@ -1,0 +1,163 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: kubernetes-vault
+  labels:
+    run: kubernetes-vault
+spec:
+  clusterIP: None
+  selector:
+    run: kubernetes-vault
+  # Kubernetes-Vault does not need to expose any ports through a headless service.
+  # However, there's a Kubernetes bug where the pods won't be registered in the API,
+  # so we need to use this hack. See kubernetes/kubernetes#32796
+  ports:
+    - name: port
+      port: 80
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kubernetes-vault
+data:
+  kubernetes-vault.yml: |-
+    vault:
+      addr: https://vault:8200
+      token: 91526d9b-4850-3405-02a8-aa29e74e17a5
+      tls:
+        caCert: /kubernetes-vault/ca.pem
+
+    kubernetes:
+      namespace: ${KUBERNETES_NAMESPACE}
+      service: kubernetes-vault
+
+    prometheus:
+      tls:
+        certFile: /kubernetes-vault/cert.pem
+        certKey: /kubernetes-vault/cert.key
+        caCert: /kubernetes-vault/ca.pem
+
+  cert.pem: |-
+    -----BEGIN CERTIFICATE-----
+    MIID2zCCAsOgAwIBAgIUNO5trP0w8VQL6XvDtMk8QUT7Zu8wDQYJKoZIhvcNAQEL
+    BQAwGjEYMBYGA1UEAxMPSW50ZXJtZWRpYXRlIENBMB4XDTE3MDMwMTIyMTQ1MVoX
+    DTE3MDMwMjIyMTUyMVowGzEZMBcGA1UEAxMQa3ViZXJuZXRlcy12YXVsdDCCASIw
+    DQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBALP/DHjf/8RqsaormJd/nDnrtRn6
+    SLbDMzcKAq2zyUUB9yaT7BBjNw55erGnQcldUBwRetkOqvZrvQSnWBMnSLrzhHsY
+    rY/E+vSsjXv9j8LgNQM0FhUEVnpGKTLh1XKSV6LIHRSNyhzYZNMp9iYXU2oFYZkI
+    aio7W6ghYlYbIZvDt9RYhR553+1qkTkDTuBQsyW9HSoZ8+RQjnALU/iV+vQ54KGv
+    2vUmAXp3Nn6ndnsTKktuigxbTlDmMiXnsvqFBZWGp1ikK0+CISX8jKijEGFl5Y9h
+    VYwfDIR8mfVL7leblYviXkNnF8ji+5JAglmU/mWXDcVeU2FamsBw2ylJk3sCAwEA
+    AaOCARYwggESMA4GA1UdDwEB/wQEAwIDqDAdBgNVHSUEFjAUBggrBgEFBQcDAQYI
+    KwYBBQUHAwIwHQYDVR0OBBYEFBu3aDr+Lr2sq6o9rpBTng/AAuMpMB8GA1UdIwQY
+    MBaAFBHy75SM4equqDhv+Q8kD3IH1T77MEMGCCsGAQUFBwEBBDcwNTAzBggrBgEF
+    BQcwAoYnaHR0cDovL3ZhdWx0OjgyMDAvdjEvaW50ZXJtZWRpYXRlLWNhL2NhMCEG
+    A1UdEQQaMBiCEGt1YmVybmV0ZXMtdmF1bHSHBH8AAAEwOQYDVR0fBDIwMDAuoCyg
+    KoYoaHR0cDovL3ZhdWx0OjgyMDAvdjEvaW50ZXJtZWRpYXRlLWNhL2NybDANBgkq
+    hkiG9w0BAQsFAAOCAQEA1E9ZvvkiYaoc/H8vKQdkPg9/ArZ7CC23Vhg2zMcMS9dY
+    l3oSgX4AFfgC36GyGUIaOvReZTErs4cI+zqnP79jgKy8b3wU2i/yCdtdwoeQPxwp
+    P0cCeNLBlpHWs/pzu/HcXONzHAKmFDp+wMSdHGmDdItSmxiwgD0WxdiKFOqYSMsQ
+    fwLtC/ujN9NzKhFMIoL3ra4L/hydwCEv04dH4eSmz8MS/ik3SYED4+b14pHB0bM+
+    DO4tQTT994I2HMrnNDBRmiBiHN7Ca5nw1CUGBLnVK0IlGFhHJpLV07ICwEJRKjah
+    3bpqeukgw8WD4dlukN9QwOen1zBXK9Bk61bzLJx48Q==
+    -----END CERTIFICATE-----
+    -----BEGIN CERTIFICATE-----
+    MIIDjzCCAnegAwIBAgIUKKS6n9WQGD2XSyN7+oS9kApMiMswDQYJKoZIhvcNAQEL
+    BQAwEjEQMA4GA1UEAxMHUm9vdCBDQTAeFw0xNzAzMDEyMjExNDNaFw0xNzA0MDIy
+    MjEyMTNaMBoxGDAWBgNVBAMTD0ludGVybWVkaWF0ZSBDQTCCASIwDQYJKoZIhvcN
+    AQEBBQADggEPADCCAQoCggEBANbI5f4DbMxmWGHye6cPMNnH0B6xpKKQHOPsBoP0
+    pWVXbyLlgGSidWG16qgOFyhU5fH6ed0Fmzzta5hQnu8kqKG1r4KMkOQgj2SsemGb
+    BzvFrnGwxSzA0gDlS16qAqOmhlQ4EX8SUIJ9N2iat2aKE+GgntIpR8Vi/n/optXB
+    d3G6lmERf0nw1xS87+Ip2438+8scePLHsUTvOPckUE5U4uSIrr1Gv6HNiGvLnvWO
+    giRAnur/ikDDU1jHY/gqnzjrHZyj2MZkMeeALreMxFl0fnyPffe5WQeFFJ8BgkI2
+    iqPTnEtGGvsEKAWCoAicvXty2U/ByPlvfYvUGBZYJUOjK6UCAwEAAaOB1DCB0TAO
+    BgNVHQ8BAf8EBAMCAQYwDwYDVR0TAQH/BAUwAwEB/zAdBgNVHQ4EFgQUEfLvlIzh
+    6q6oOG/5DyQPcgfVPvswHwYDVR0jBBgwFoAUPhlpd5lroV3b7nxeVQTrOH0WHsgw
+    OwYIKwYBBQUHAQEELzAtMCsGCCsGAQUFBzAChh9odHRwOi8vdmF1bHQ6ODIwMC92
+    MS9yb290LWNhL2NhMDEGA1UdHwQqMCgwJqAkoCKGIGh0dHA6Ly92YXVsdDo4MjAw
+    L3YxL3Jvb3QtY2EvY3JsMA0GCSqGSIb3DQEBCwUAA4IBAQCXvaglJ2Sc04vz7m6f
+    t08LXIXeFyXGSs1YX7UarWf9V12g6UQwGgb+NrN7x1wuWHrEahmQl+SxTtXvbQqB
+    ipHAzCbFV/pSPcF4LQkDcY6iXYakzeeFB4rgP+g2W/3i6VV0jGPaD1p4Ttv3hpIh
+    l2Nrwp/wR7VcO/df2NulcFEPIqOiKI8GqTA3HkZFg/tIlymMxQc7zZPBiSqC7TyY
+    KegKN2G/VDOLoFnvcUq033A+yF3ULabpT8CuScV2kPU+XFYMM9+n0GDRwiU0C6g0
+    XbxuRKVbfKEVvUP/R9+Kpthm4TGmHCy2EyuieRlLXdgnWqyZV+jYu9E7a+hcU61B
+    fLha
+    -----END CERTIFICATE-----
+
+  cert.key: |-
+    -----BEGIN RSA PRIVATE KEY-----
+    MIIEowIBAAKCAQEAs/8MeN//xGqxqiuYl3+cOeu1GfpItsMzNwoCrbPJRQH3JpPs
+    EGM3Dnl6sadByV1QHBF62Q6q9mu9BKdYEydIuvOEexitj8T69KyNe/2PwuA1AzQW
+    FQRWekYpMuHVcpJXosgdFI3KHNhk0yn2JhdTagVhmQhqKjtbqCFiVhshm8O31FiF
+    Hnnf7WqROQNO4FCzJb0dKhnz5FCOcAtT+JX69Dngoa/a9SYBenc2fqd2exMqS26K
+    DFtOUOYyJeey+oUFlYanWKQrT4IhJfyMqKMQYWXlj2FVjB8MhHyZ9UvuV5uVi+Je
+    Q2cXyOL7kkCCWZT+ZZcNxV5TYVqawHDbKUmTewIDAQABAoIBAE5bb6CHUx68m89K
+    30jEgswsMlC2xkTZwUfqkbPwmmPyMReYOaIArw0cES+ZcmgouSEe8u3fFsnjqQuH
+    li3wYhcQv9Gesp/tzpoJLCaYAaeCV1GnsR1BICxmsrS132fbEU+J8i7qctwP0ASl
+    NcTrTqLO6Ofn49+yq3oL3nVBpmXaGGB7xdyLQKUjscnzotXnmf8zFexE8uq+Ou9a
+    YdhwWWOGmlIsPRpmXbDAnqX7RrkGAL+BCdvRl1iXT+/m+tjarXxr1ZPr0ZL1rPvX
+    NB8DvCdr1lkpOHTxFLjZXfiAQpXfnG7tNFOJa5xhvMI6OyH5EMFeldiAqRAPdKnY
+    Xp21hiECgYEA6pWD5/YCGnlZEPOxQJU+YdqRnTCMviSg6ud2KprYzwmY5B7omKcc
+    dKvKqzJY4P0AEWRaYEM9Ql87hgIguT47q4hOr1mnbvcr1ouiuSXzFxBj4HgFaifi
+    Q2YWqSBFfZ0bFUxhJCtZJvnCwtaR55jDtknDa1XIKSpn/PePC2LxS0kCgYEAxG3C
+    DftcCLYpF3y1BWVpkm41cyrJpDos4xDxUlRej8mJVbtEdPqKCvCbbdNHmLzu2S5F
+    xZE9B2uDpyz+R0ggTmB58DWsl+PENhhP9Mxkm6npnYijYkzpaVLRVyApv5UHZgGT
+    ieAVRTFsDR/m1cs024yflISYyfayQWMMDWsthKMCgYBR/l6zpkZH8KBUD4mmFERQ
+    ua/p7H1VPMJOOQcRjzw26ZjaK3+LU+XbVeyp+Bge0+/BJH1+ZiI0X8sTZQ0BEqKS
+    qzstiT2/yH83J2mCI6SbLCxs2iayWyx3+Gf1R4ViiZZc1Gyj0s7/k48iwRMQi1Hl
+    FlVK4BntYZglUHZcOYIzmQKBgQCoF9EPjAHXRqNlgQecBYvRjlRZKM2Dp3EQI0iQ
+    DrkZTPskjWvouxn0gLBRzJMhZtTyr8Fvb3mNZvkzz7IOJ+/VgoP3Bsea94PKUwXh
+    VCPoff/4GpzOm0jHI+MXLuPrGcpKBaFPRJ6PJtrzZFBytkGWfAF34/yoIF+syuje
+    dtBuBwKBgDm8lXznjjP5TZUq9eIW/NWN+4+Qm7367MCMYl+wVwuJay1IYo7aQase
+    fnQuZHW3hDB9htuuie8Ck7KbohsF6puMcT4Edup3e6WMpHSl9MqvGz4zdste0KlN
+    3on42ZmKSVqsIkwmYOoA2/B4Tv1KwydABOcPaqdgTJb5Krj6YEpG
+    -----END RSA PRIVATE KEY-----
+
+  ca.pem: |-
+    -----BEGIN CERTIFICATE-----
+    MIIC9DCCAdygAwIBAgIUXRV3jdFy5+lbx5nmgtEAOYmdoDEwDQYJKoZIhvcNAQEL
+    BQAwEjEQMA4GA1UEAxMHUm9vdCBDQTAeFw0xNzAzMDEyMjEwMjZaFw0yNzAyMjcy
+    MjEwNTZaMBIxEDAOBgNVBAMTB1Jvb3QgQ0EwggEiMA0GCSqGSIb3DQEBAQUAA4IB
+    DwAwggEKAoIBAQDVebhyaSiuUyEAM/qsHouXGCcY5S7tWk0iGcn7YGg5OfCTlaeG
+    OjZekpPXowJ1U1qGAnZeL2QEtTPxiBS0IZ7tJywcDwZGtmydisrvtnNzDxJHUY88
+    T+r/RdDC5dEwBxtqK23SiKVJBDukKS2s7WaDtWkOC1Wv6vAEFdFHEuRtVI6qSHY2
+    4Utto1i4sEoRKxbnO2M10Z/35Z06iNNXk0bXwzxThgDxwUnxTV/Ms1odT6IuiSEN
+    U6hA4nK/pM1EP4uerZzSwYbzvLC/4lopsKEiCtXtLUGJC0fPlIW5OcN90uWQPUaF
+    VBnUKar9xML77y4Rm+SHtvGiKxjcKTnARSVBAgMBAAGjQjBAMA4GA1UdDwEB/wQE
+    AwIBBjAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBQ+GWl3mWuhXdvufF5VBOs4
+    fRYeyDANBgkqhkiG9w0BAQsFAAOCAQEArTgJ6FsjqW8cJSsXKlZ4YsBBYLgI/CNq
+    Jb5+WQkaY6zjuEFq9610r0cR9+zNCrNSGnHHpJFIBgkUwZSpucYpebi/H1L4A39J
+    Ly+cgWI9qM9Fxil9a1B2z+NXBdOzl3e3gQ6DwJeUSQDRnDdWvU+un0CsyOqFImX9
+    2EO2xJra4u+YZ+6Uw0EA6JlLlwN7aaDTP+6TqtNWOdTYCiWdGDgAz5K68jny/rzk
+    4Smdyd7jpWs+SHdRxc5mzMQLmmyQhUAy1vIEVZO7620+fQSGnjGmXk21eF873axa
+    3osDA/EVYQug7AhTICRKuhQIX+HlR+gy+Oe+eye+ZhYlIBrmkZJXEA==
+    -----END CERTIFICATE-----
+
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: kubernetes-vault
+spec:
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        run: kubernetes-vault
+    spec:
+      containers:
+      - name: kubernetes-vault
+        image: boostport/kubernetes-vault:0.3.0
+        imagePullPolicy: Always
+        env:
+        - name: KUBERNETES_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        volumeMounts:
+        - name: config-volume
+          mountPath: /kubernetes-vault
+      volumes:
+        - name: config-volume
+          configMap:
+            name: kubernetes-vault

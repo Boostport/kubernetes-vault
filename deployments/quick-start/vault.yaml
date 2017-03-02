@@ -25,12 +25,16 @@ spec:
         app: vault
     spec:
       containers:
-      - image: vault:0.6.2
+      - image: vault:0.6.5
         name: vault
         ports:
         - containerPort: 8200
           name: vaultport
           protocol: TCP
+        securityContext:
+         capabilities:
+           add:
+             - IPC_LOCK
         env:
         - name: VAULT_DEV_ROOT_TOKEN_ID
           value: vault-root-token
