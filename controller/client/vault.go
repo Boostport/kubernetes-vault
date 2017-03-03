@@ -147,7 +147,7 @@ func (v *Vault) GetSecretId(role string) (common.WrappedSecretId, error) {
 	}
 
 	return common.WrappedSecretId{
-		Token:        s.WrapInfo.Token,
+		SecretID:     s.WrapInfo.Token,
 		CreationTime: s.WrapInfo.CreationTime,
 		TTL:          s.WrapInfo.TTL,
 		VaultAddr:    v.vaultAddr,
