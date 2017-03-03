@@ -5,10 +5,10 @@
 * You have a basic understanding of how Kubernetes and Vault works.
 
 ## 1. Deploy Vault
-Inspect the deployment file `deployments/vault.yaml`. The deployment starts Vault in development mode with the root token
+Inspect the deployment file `deployments/quick-start/vault.yaml`. The deployment starts Vault in development mode with the root token
 set to `vault-root-token`. It is also started using `http`. In production, you should run Vault over `https`.
 
-Deploy: `kubectl apply -f deployments/vault.yaml`
+Deploy: `kubectl apply -f deployments/quick-start/vault.yaml`
 
 ## 2. Setup Vault
 ### 2.1 Port forward vault
@@ -51,7 +51,7 @@ Enable backend: `vault auth-enable approle`
 Set up an app-role for `sample-app` that generates a periodic 6 hour token: `vault write auth/approle/role/sample-app secret_id_ttl=90s period=6h secret_id_num_uses=1`
 
 ### 2.5 Create token role for Kubernetes-Vault
-Inspect the policy file `deployments/policy.hcl`
+Inspect the policy file `deployments/quick-start/policy.hcl`
 
 Send the policy to Vault: `vault policy-write kubernetes-vault policy.hcl`
 
@@ -64,25 +64,25 @@ Get the AppID: `vault read auth/approle/role/sample-app/role-id`
 
 ## 3. Deploy Kubernetes-Vault
 ### 3.1 Prepare the manifest and deploy
-Check `deployments/kubernetes-vault.yaml` and update the Vault token in the Kubernetes deployment.
+Check `deployments/quick-start/kubernetes-vault.yaml` and update the Vault token in the Kubernetes deployment.
 
-Deploy: `kubectl apply -f deployments/kubernetes-vault.yaml`
+Deploy: `kubectl apply -f deployments/quick-start/kubernetes-vault.yaml`
 
 ### 3.2 Confirm Kubernetes-Vault deployed successfully
 Use the Kubernetes dashboard to view the status of the deployment and make sure all pods are healthy.
 
 ## 4. Deploy a sample app
 ### 4.1 Prepare the manifest and deploy
-Inspect `deployments/sample-app.yaml` and update the role id in the deployment.
+Inspect `deployments/quick-start/sample-app.yaml` and update the role id in the deployment.
 
-Deploy: `kubectl apply -f deployments/sample-app.yaml`
+Deploy: `kubectl apply -f deployments/quick-start/sample-app.yaml`
 
 ## 5. Confirm that each pod of the sample app received a Vault token
 View the logs using the Kubernetes dashboard or `kubectl logs mypod` and confirm that each pod receive a token.
 The token and various other information related to the token should be logged.
 
 ## 6. Tear down
-Clean up: `kubectl delete -f deployments/sample-app.yaml -f deployments/kubernetes-vault.yaml`
+Clean up: `kubectl delete -f deployments/quick-start/sample-app.yaml -f deployments/quick-start/kubernetes-vault.yaml`
 
 ## Further deployment options
 In this guide, we did not set up TLS client authentication for the metrics endpoint. To do so, simply set the `vaultCABackends`
