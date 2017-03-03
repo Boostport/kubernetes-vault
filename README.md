@@ -160,10 +160,11 @@ The init containers are configured using environment variables and Kubernetes an
 
 #### Environment variables
 
-| Environment Variable  | Description                                                                              | Required  | Default Value                                | Example                                 |
-|-----------------------|------------------------------------------------------------------------------------------|-----------|----------------------------------------------|-----------------------------------------|
-| VAULT_ROLE_ID         | The Vault role id.                                                                       | `yes`     | `none`                                       | `313b0821-4ff6-1df8-54dd-c3eea5d3b8b1`  |
-| CREDENTIALS_PATH      | The location where the Vault token and CA Bundle (if it exists) will be written          | `no`      | `/var/run/secrets/boostport.com`             | `/var/run/my/path`                      |
+| Environment Variable |                                   Description                                   | Required |          Default Value           |                Example                 |
+|----------------------|---------------------------------------------------------------------------------|----------|----------------------------------|----------------------------------------|
+| CREDENTIALS_PATH     | The location where the Vault token and CA Bundle (if it exists) will be written | `no`     | `/var/run/secrets/boostport.com` | `/var/run/my/path`                     |
+| LOG_LEVEL            | The log level. Valid values are `debug` and `error                              | `no`     | `debug`                          | `debug`                                |
+| VAULT_ROLE_ID        | The Vault role id.                                                              | `yes`    | `none`                           | `313b0821-4ff6-1df8-54dd-c3eea5d3b8b1` |
 
 #### Pod annotations
 
@@ -176,6 +177,9 @@ The init containers are configured using environment variables and Kubernetes an
 Kubernetes-Vault uses [Prometheus](https://prometheus.io) for metrics reporting. It exposes these metrics over the `/metrics` endpoint over http or https.
 
 For more information about metrics, read the guide on [metrics](metrics.md).
+
+## Troubleshooting
+See the [troubleshooting guide](troubleshooting.md).
 
 ## Development
 PRs are highly welcomed!
