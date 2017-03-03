@@ -34,8 +34,18 @@ type authToken struct {
 
 func main() {
 
+	logLevel := os.Getenv("LOG_LEVEL")
+
 	logger := logrus.New()
 	logger.Level = logrus.DebugLevel
+
+	if logLevel != "debug" && logLevel != "error" {
+		logger.Fatalf(`Invalid LOG_LEVEL. Valid values are "debug" and "error".`)
+	}
+
+	if logLevel == "error" {
+		logger.Level = logrus.ErrorLevel
+	}
 
 	roleId := os.Getenv("VAULT_ROLE_ID")
 
@@ -76,7 +86,7 @@ func main() {
 	certificate, err := generateCertificate(ip, timeout)
 
 	if err != nil {
-		logger.Fatalf("Could not generate certificate: %s", err)
+		logger.Fatalf("Could not generate self-signed certificate: %s", err)
 	}
 
 	result := make(chan common.WrappedSecretId)
@@ -90,15 +100,13 @@ func main() {
 			authToken, rootCAs, err := processWrappedSecretId(wrappedSecretId, roleId)
 
 			if err != nil {
-				logger.Debugf("Could not get auth token: %s", err)
-				os.Exit(1)
+				logger.Fatalf("Could not get auth token: %s", err)
 			}
 
 			b, err := json.Marshal(authToken)
 
 			if err != nil {
-				logger.Debugf("Could not marshal auth token to JSON: %s", err)
-				os.Exit(1)
+				logger.Fatalf("Could not marshal auth token to JSON: %s", err)
 			}
 
 			tokenPath := path.Join(credentialsPath, "vault-token")
@@ -106,8 +114,7 @@ func main() {
 			err = ioutil.WriteFile(tokenPath, b, 0444)
 
 			if err != nil {
-				logger.Debugf("Could not write auth token to path (%s): %s", tokenPath, err)
-				os.Exit(1)
+				logger.Fatalf("Could not write auth token to path (%s): %s", tokenPath, err)
 			}
 
 			if len(rootCAs) > 0 {
@@ -117,8 +124,7 @@ func main() {
 				err = ioutil.WriteFile(caBundlePath, rootCAs, 0444)
 
 				if err != nil {
-					logger.Debugf("Could not write CA bundle to path (%s): %s", caBundlePath, err)
-					os.Exit(1)
+					logger.Fatalf("Could not write CA bundle to path (%s): %s", caBundlePath, err)
 				}
 			}
 
@@ -126,8 +132,7 @@ func main() {
 			os.Exit(0)
 
 		case <-time.After(timeout):
-			logger.Info("Failed to create vault auth token because we timed out before receiving the secret_id. Exiting.")
-			os.Exit(1)
+			logger.Fatalf("Failed to create vault auth token because we timed out after %s before receiving the secret_id. Exiting.", timeout)
 		}
 	}
 
