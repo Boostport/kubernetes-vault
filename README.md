@@ -162,8 +162,8 @@ The init containers are configured using environment variables and Kubernetes an
 
 | Environment Variable |                                                            Description                                                            | Required |          Default Value           |                Example                 |
 |----------------------|-----------------------------------------------------------------------------------------------------------------------------------|----------|----------------------------------|----------------------------------------|
-| CREDENTIALS_PATH     | The location where the Vault token and CA Bundle (if it exists) will be written                                                   | `no`     | `/var/run/secrets/boostport.com` | `/var/run/my/path`                     |
-| LOG_LEVEL            | The log level. Valid values are `debug` and `error                                                                                | `no`     | `debug`                          | `debug`                                |
+| CREDENTIALS_PATH     | The location where the Vault token and CA Bundle (if it exists) will be written.                                                  | `no`     | `/var/run/secrets/boostport.com` | `/var/run/my/path`                     |
+| LOG_LEVEL            | The log level. Valid values are `debug` and `error`.                                                                              | `no`     | `debug`                          | `debug`                                |
 | TIMEOUT              | Maximum amount of time to wait for the wrapped `secret_id` to be pushed. Valid time units are `ns`, `us`, `ms`, `s`, `m` and `h`. | `no`     | `5m`                             | `120s`                                 |
 | VAULT_ROLE_ID        | The Vault role id.                                                                                                                | `yes`    | `none`                           | `313b0821-4ff6-1df8-54dd-c3eea5d3b8b1` |
 
