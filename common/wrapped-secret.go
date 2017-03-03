@@ -7,7 +7,7 @@ import (
 )
 
 type WrappedSecretId struct {
-	Token        string    `json:"token"`
+	SecretID     string    `json:"token"`
 	CreationTime time.Time `json:"creationTime"`
 	TTL          int       `json:"ttl"`
 	VaultAddr    string    `json:"vaultAddr"`
@@ -16,7 +16,7 @@ type WrappedSecretId struct {
 
 func (w WrappedSecretId) Validate() error {
 
-	if w.Token == "" {
+	if w.SecretID == "" {
 		return errors.New("Token is empty.")
 	}
 

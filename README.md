@@ -25,7 +25,7 @@ To run Kubernetes-Vault on your cluster, follow the [quick start guide](quick-st
 See our list of [best practices](best-practices.md).
 
 ## Token format
-The token information is encoded as JSON and written to the file. Here's an example of what it looks like:
+The token information is encoded as JSON and written to a file called `vault-token`. Here's an example of what it looks like:
 
 ```json
 {
@@ -38,6 +38,22 @@ The token information is encoded as JSON and written to the file. Here's an exam
 ```
 
 You application should parse the JSON representation and renew the `clientToken` using the `leaseDuration` as a guide.
+
+If you ask the init container to not login using the `role_id` and `secret_id` to retrieve the token by setting the
+`RETRIEVE_TOKEN` environment variable of the init container to `false`, the `secret_id` and any related information is
+encoded as JSON written to a file called `vault-secret-id` instead. Here's an example of what it looks like:
+ 
+```json
+{
+    "roleId":"313b0821-4ff6-1df8-54dd-c3eea5d3b8b1",
+    "secretId":"3c3ebf1f-8fa5-8cce-e3e8-f769e386bd4b",
+    "accessor":"5c8b7cb5-5d8e-0dbf-be27-12604f5b64aa",
+    "vaultAddr":"https://vault:8200"
+}
+```
+
+If you choose to use Kubernetes-vault in this mode, it will be your application's responsibility to use the `secret_id`
+and `role_id` pair to login to the Vault server and retrieve an auth token.
 
 ## CA bundle
 If you are connecting to Vault over https (highly recommended for production), you will find the CA bundle for Vault in
@@ -162,8 +178,9 @@ The init containers are configured using environment variables and Kubernetes an
 
 | Environment Variable |                                                            Description                                                            | Required |          Default Value           |                Example                 |
 |----------------------|-----------------------------------------------------------------------------------------------------------------------------------|----------|----------------------------------|----------------------------------------|
-| CREDENTIALS_PATH     | The location where the Vault token and CA Bundle (if it exists) will be written.                                                  | `no`     | `/var/run/secrets/boostport.com` | `/var/run/my/path`                     |
-| LOG_LEVEL            | The log level. Valid values are `debug` and `error`.                                                                              | `no`     | `debug`                          | `debug`                                |
+| CREDENTIALS_PATH     | The location where the Vault token and CA Bundle (if it exists) will be written                                                   | `no`     | `/var/run/secrets/boostport.com` | `/var/run/my/path`                     |
+| LOG_LEVEL            | The log level. Valid values are `debug` and `error                                                                                | `no`     | `debug`                          | `debug`                                |
+| RETRIEVE_TOKEN       | Whether to login using the `secret_id` and `role_id` to retrieve the auth token.                                                  | `no`     | `true`                           | `false`                                |
 | TIMEOUT              | Maximum amount of time to wait for the wrapped `secret_id` to be pushed. Valid time units are `ns`, `us`, `ms`, `s`, `m` and `h`. | `no`     | `5m`                             | `120s`                                 |
 | VAULT_ROLE_ID        | The Vault role id.                                                                                                                | `yes`    | `none`                           | `313b0821-4ff6-1df8-54dd-c3eea5d3b8b1` |
 
