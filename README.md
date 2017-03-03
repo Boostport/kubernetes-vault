@@ -75,20 +75,20 @@ raftDir: /my/custom/raft/dir
 #### vault *(required)*
 Settings for communicating with the Vault server. It contains nested properties:
 
-##### addr *(required)*
+* addr *(required)*
 The address of the Vault server. For example, `http://vault:8200`.
 
-##### token *(required)*
+* token *(required)*
 A renewable and periodic Vault token to be used by the Kubernetes-Vault controller.
 
-##### tls *(optional)*
-If Vault is secured using TLS (https), then you need to set one of the following:
+  * tls *(optional)*
+  If Vault is secured using TLS (https), then you need to set one of the following:
 
-###### vaultCABackends *(optional)*
-If Vault uses itself as a certificate authority, provide the list of root PKI backends here.
+  * vaultCABackends *(optional)*
+  If Vault uses itself as a certificate authority, provide the list of root PKI backends here.
 
-###### caCert *(optional)*
-If Vault uses an external CA, provide the absolute path to a file containing the CA certificates in PEM format.
+  * caCert *(optional)*
+  If Vault uses an external CA, provide the absolute path to a file containing the CA certificates in PEM format.
 
 ##### Example (using Vault as a CA):
 ```yaml
@@ -102,10 +102,10 @@ vault:
 #### kubernetes *(required)*
 Settings for talking to the Kubernetes API server.
 
-##### namespace *(required)*
+* namespace *(required)*
 The Kubernetes namespace to watch for newly created pods.
 
-##### service *(required)*
+* service *(required)*
 The Kubernetes service being used by the Kubernetes-Vault controller, so that it can discover other Kubernetes-Vault
 controllers to form a cluster.
 
@@ -120,28 +120,28 @@ kubernetes:
 #### prometheus *(optional)*
 Configuration for the Prometheus endpoint.
 
-##### tls *(optional)*
+* tls *(optional)*
 TLS configuration for the Prometheus endpoint. You can use Vault as the CA or an external CA. If using Vault as the CA,
 you must set `vaultCertBackend`, `vaultCertRole`, `vaultCABackends`. Otherwise, set `certFile`, `certKey`, and `caCert`
 if using an external CA.
 
-###### vaultCertBackend *(optional)*
+  * vaultCertBackend *(optional)*
 The Vault PKI backend to be used to issue certificates for securing the Prometheus metrics endpoint.
 
-###### vaultCertRole *(optional)*
+  * vaultCertRole *(optional)*
 The Vault PKI role to be used to issue certificates for securing the Prometheus metrics endpoint.
 
-###### vaultCABackends *(optional)*
+  * vaultCABackends *(optional)*
 If you want to enable client TLS authentication against the Prometheus scrappers, set the list of Vault PKI backend
 being used as a certificate authority for those scrappers here.
 
-###### certFile *(optional)*
+  * certFile *(optional)*
 If using an external CA, provide the absolute path to the certificate in PEM format here.
 
-###### certKey *(optional)*
+  * certKey *(optional)*
 If using an external CA, provide the absolute path to the key for the certificate in PEM format here.
 
-###### caCert *(optional)*
+  * caCert *(optional)*
 If you want to enable client TLS authentication against the Prometheus scrappers, provide the absolute path to the file
 containing the root certificates in PEM format here.
 
