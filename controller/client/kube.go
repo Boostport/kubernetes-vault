@@ -2,6 +2,7 @@ package client
 
 import (
 	"encoding/json"
+
 	"github.com/Boostport/kubernetes-vault/common"
 	"github.com/pkg/errors"
 	"k8s.io/client-go/kubernetes"
@@ -37,7 +38,7 @@ func (k *Kube) GetPods() ([]Pod, error) {
 
 	p := []Pod{}
 
-	pods, err := k.client.Core().Pods(k.namespace).List(v1.ListOptions{})
+	pods, err := k.client.CoreV1().Pods(k.namespace).List(v1.ListOptions{})
 
 	if err != nil {
 		return p, errors.Wrap(err, "could not list pods")
@@ -60,7 +61,7 @@ func (k *Kube) WatchForPods() (<-chan Pod, chan<- struct{}, error) {
 	events := make(chan Pod, 1024)
 	stop := make(chan struct{})
 
-	watcher, err := k.client.Core().Pods(k.namespace).Watch(v1.ListOptions{
+	watcher, err := k.client.CoreV1().Pods(k.namespace).Watch(v1.ListOptions{
 		Watch: true,
 	})
 
@@ -142,7 +143,7 @@ func (k *Kube) Discover(service string) ([]string, error) {
 
 	ips := []string{}
 
-	endpoints, err := k.client.Core().Endpoints(k.namespace).Get(service)
+	endpoints, err := k.client.CoreV1().Endpoints(k.namespace).Get(service)
 
 	if err != nil {
 		return ips, errors.Wrapf(err, "could not get endpoints for the service %s", service)
