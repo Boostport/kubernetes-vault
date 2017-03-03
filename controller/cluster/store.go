@@ -3,19 +3,8 @@ package cluster
 import (
 	"bytes"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
-	"github.com/Boostport/kubernetes-vault/controller/client"
-	"github.com/Sirupsen/logrus"
-	"github.com/cenkalti/backoff"
-	"github.com/hashicorp/go-cleanhttp"
-	"github.com/hashicorp/raft"
-	"github.com/hashicorp/raft-boltdb"
-	"github.com/hashicorp/serf/serf"
-	"github.com/kubernetes/client-go/pkg/util/json"
-	"github.com/pkg/errors"
-	"github.com/prometheus/client_golang/prometheus"
-	"golang.org/x/net/context"
-	"golang.org/x/net/context/ctxhttp"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -23,6 +12,18 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/Boostport/kubernetes-vault/controller/client"
+	"github.com/Sirupsen/logrus"
+	"github.com/cenkalti/backoff"
+	"github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/raft"
+	"github.com/hashicorp/raft-boltdb"
+	"github.com/hashicorp/serf/serf"
+	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
+	"golang.org/x/net/context"
+	"golang.org/x/net/context/ctxhttp"
 )
 
 type snapshot struct{}
@@ -148,13 +149,13 @@ func (s *Store) start() {
 			f := s.Raft.Shutdown()
 
 			if f.Error() != nil {
-				s.logger.Infof("Could not shutdown raft: %s", f.Error())
+				s.logger.Errorf("Could not shutdown raft: %s", f.Error())
 			}
 
 			err := s.gossip.Shutdown()
 
 			if err != nil {
-				s.logger.Infof("Could not shutdown memberlist: %s", err)
+				s.logger.Errorf("Could not shutdown memberlist: %s", err)
 			}
 
 			return
@@ -194,7 +195,7 @@ func (s *Store) startLeader() {
 	events, stop, err := s.kubeClient.WatchForPods()
 
 	if err != nil {
-		s.logger.Info("Could not watch pods: %s", err)
+		s.logger.Errorf("Could not watch pods: %s", err)
 		watchSuccessful = false
 	}
 
@@ -217,7 +218,7 @@ func (s *Store) startLeader() {
 				events, stop, err = s.kubeClient.WatchForPods()
 
 				if err != nil {
-					s.logger.Info("Could not watch pods: %s", err)
+					s.logger.Errorf("Could not watch pods: %s", err)
 					watchSuccessful = false
 				} else {
 					watchSuccessful = true
@@ -225,7 +226,7 @@ func (s *Store) startLeader() {
 			}
 
 		case <-s.shutdownLeader:
-			s.logger.Info("Shutting down leader.")
+			s.logger.Debug("Shutting down leader.")
 			pollPodsTicker.Stop()
 			close(stop)
 			return
@@ -237,7 +238,7 @@ func (s *Store) getPodsAndPushSecretIds() {
 	pods, err := s.kubeClient.GetPods()
 
 	if err != nil {
-		s.logger.Infof("Could not list pods: %s", err)
+		s.logger.Errorf("Could not list pods: %s", err)
 	}
 
 	s.Lock()
@@ -260,19 +261,19 @@ func (s *Store) pushSecretIdToPod(pod client.Pod) {
 		s.Unlock()
 	}()
 
-	s.logger.Infof("Attempting to push wrapped secret_id to pod (%s).", pod.Name)
+	s.logger.Debugf("Attempting to push wrapped secret_id to pod (%s).", pod.Name)
 
 	wrappedSecret, err := s.vaultClient.GetSecretId(pod.Role)
 
 	if err != nil {
-		s.logger.Infof("Could not get secret_id for role (%s) for pod (%s): %s", pod.Role, pod.Name, err)
+		s.logger.Errorf("Could not get secret_id for role (%s) for pod (%s): %s", pod.Role, pod.Name, err)
 		return
 	}
 
 	b, err := json.Marshal(wrappedSecret)
 
 	if err != nil {
-		s.logger.Infof("Could not marshal wrapped secret to JSON: %s", err)
+		s.logger.Errorf("Could not marshal wrapped secret to JSON: %s", err)
 		return
 	}
 
@@ -302,9 +303,9 @@ func (s *Store) pushSecretIdToPod(pod client.Pod) {
 
 	if err != nil {
 		secretPushFailures.With(prometheus.Labels{"approle": pod.Role}).Inc()
-		s.logger.Infof("Could not push wrapped secret_id to pod (%s): %s", pod.Name, err)
+		s.logger.Errorf("Could not push wrapped secret_id to pod (%s): %s", pod.Name, err)
 	} else {
-		s.logger.Infof("Successfully pushed wrapped secret_id to pod (%s)", pod.Name)
+		s.logger.Debugf("Successfully pushed wrapped secret_id to pod (%s)", pod.Name)
 	}
 
 	return
@@ -314,7 +315,7 @@ func (s *Store) handleGossipMembershipChange(memberEvent serf.MemberEvent) {
 	peers, err := s.peerStore.Peers()
 
 	if err != nil {
-		s.logger.Infof("Could not read from the peer store: %s", err)
+		s.logger.Errorf("Could not read from the peer store: %s", err)
 		return
 	}
 
@@ -331,7 +332,7 @@ func (s *Store) handleGossipMembershipChange(memberEvent serf.MemberEvent) {
 				f := s.Raft.AddPeer(changedPeer)
 
 				if f.Error() != nil {
-					s.logger.Infof("Could not add peer to cluster using leader: %s", f.Error())
+					s.logger.Errorf("Could not add peer to cluster using leader: %s", f.Error())
 				}
 
 			} else {
@@ -339,7 +340,7 @@ func (s *Store) handleGossipMembershipChange(memberEvent serf.MemberEvent) {
 				f := s.Raft.SetPeers(newPeers)
 
 				if f.Error() != nil {
-					s.logger.Infof("Could not add peer to list using follower: %s", f.Error())
+					s.logger.Errorf("Could not add peer to list using follower: %s", f.Error())
 				}
 			}
 
@@ -359,21 +360,21 @@ func (s *Store) handleGossipMembershipChange(memberEvent serf.MemberEvent) {
 				f := s.Raft.RemovePeer(changedPeer)
 
 				if f.Error() != nil {
-					s.logger.Infof("Could not remove peer from cluster using leader: %s", f.Error())
+					s.logger.Errorf("Could not remove peer from cluster using leader: %s", f.Error())
 				}
 			} else {
 				newPeers := raft.ExcludePeer(peers, changedPeer)
 				f := s.Raft.SetPeers(newPeers)
 
 				if f.Error() != nil {
-					s.logger.Infof("Could not remove peer from list using follower: %s", f.Error())
+					s.logger.Errorf("Could not remove peer from list using follower: %s", f.Error())
 				}
 			}
 		}
 	}
 
 	if peers, err := s.peerStore.Peers(); err != nil {
-		s.logger.Infof("Error getting peer list: %s", err)
+		s.logger.Errorf("Error getting peer list: %s", err)
 	} else {
 		nodesTotal.Set(float64(len(peers)))
 	}

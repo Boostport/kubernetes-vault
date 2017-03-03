@@ -1,8 +1,9 @@
 package common
 
 import (
-	"github.com/pkg/errors"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 type WrappedSecretId struct {
@@ -10,7 +11,7 @@ type WrappedSecretId struct {
 	CreationTime time.Time `json:"creationTime"`
 	TTL          int       `json:"ttl"`
 	VaultAddr    string    `json:"vaultAddr"`
-	VaultCAs     [][]byte  `json:"vaultCAs"`
+	VaultCAs     []byte    `json:"vaultCAs"`
 }
 
 func (w WrappedSecretId) Validate() error {

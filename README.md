@@ -6,6 +6,7 @@ The Kubernetes-Vault project allows pods to automatically receive a Vault token 
 ## Highlights
 * Secure by default. The Kubernetes-Vault controller does not allow using root tokens to authenticate against Vault.
 * Prometheus metrics endpoint over http or https, with optional TLS client authentication.
+* Supports using Vault as a CA or an external CA for all components with TLS support.
 * High availability mode using Raft, so that if the leader goes down, a follower can take over immediately.
 * Peer discovery using Kubernetes services and endpoints and gossip to propagate peer changes across the cluster.
 
@@ -44,32 +45,127 @@ the file `ca.crt`. Use the CA bundle when connecting to Vault using your applica
 verified.
 
 ## Configuration
-The project consists of 2 containers, a controller container what watches the Kubernetes cluster and pushes `secret_id`s to pods and an init container that
+The project consists of 2 containers, a controller container that watches the Kubernetes cluster and pushes `secret_id`s to pods and an init container that
 receives the `secret_id` and exchanges it for an auth token. These 2 containers are configured using environment variables. The init container also requires
 configuration using Kubernetes annotations.
 
-### Kubernetes-Vault environment variables
+For full examples of configuration files, check out the ConfigMaps in the [quick start](deployments/quick-start/kubernetes-vault.yaml) and [secured](deployments/secured-external-ca/kubernetes-vault.yaml) examples.
 
-| Environment Variable   | Description                                                                                            | Required   | Default Value                | Example                                 |
-|------------------------|--------------------------------------------------------------------------------------------------------|------------|------------------------------|-----------------------------------------|
-| RAFT_DIR               | Directory to store raft information.                                                                   | `no`       | `/var/lib/kubernetes-vault/` | `/var/my/dir`                           |
-| VAULT_TOKEN            | Periodic Vault token to talk to Vault.                                                                 | `yes`      | `none`                       | `91526d9b-4850-3405-02a8-aa29e74e17a5`  |
-| VAULT_ADDR             | Address of the Vault server.                                                                           | `yes`      | `none`                       | `https://vault:8200`                    |
-| KUBERNETES_NAMESPACE   | The namespace the deployment runs in. Used to discover other nodes.                                    | `yes`      | `none`                       | `default`                               |
-| KUBERNETES_SERVICE     | The service or headless service the deployment is in. Used for discovery.                              | `yes`      | `none`                       | `kubernetes-vault`                      |
-| VAULT_CA_BACKENDS      | A comma-seperated list of PKI backends to get the root CAs used by vault.                              | `no`       | `none`                       | `root-ca1,root-ca2`                     |
-| CERT_BACKEND           | The PKI backend to be used to generated a certificate for Kubernetes-Vault                             | `no`       | `none`                       | `intermediate-ca`                       |
-| CERT_ROLE              | The PKI role to be used to issue certificates for Kubernetes-Vault                                     | `no`       | `none`                       | `kubernetes-vault`                      |
-| PROMETHEUS_CA_BACKENDS | A comma separated list of PKI backends to trust for TLS client authentication to the metrics endpoint. | `no`       | `none`                       | `root-ca1,root-ca2`                     |
+### Kubernetes-Vault controller configuration
+The Kubernetes-Vault is configured using a YAML file. We recommend using a ConfigMap to mount the file and any other files
+( such as certificates and private keys, if using an external CA) into the controller's pod.
 
-### Init container environment variables
+The controller automatically expands any environment variables used in the configuration specified using the `$VARIABLE` or 
+`${VARIABLE}` notation. For example, if you set `raftDir: ${MY_DIR}` and set the `$MY_DIR` environment variable to `/tmp`, it 
+ expands to: `raftDir: /tmp`.
+ 
+ By default, the controller looks for configuration in `kubernetes-vault.yml` in the current working directory, but you
+ can override this by setting the `-config` flag with the absolute path to your config file.
+
+The available configuration options in the config file are:
+
+#### raftDir *(optional)*
+The location where raft data should be stored. By default this is: `/var/lib/kubernetes-vault/`.
+
+If you want to set a custom location:
+```yaml
+raftDir: /my/custom/raft/dir
+```
+
+#### vault *(required)*
+Settings for communicating with the Vault server. It contains nested properties:
+
+##### addr *(required)*
+The address of the Vault server. For example, `http://vault:8200`.
+
+##### token *(required)*
+A renewable and periodic Vault token to be used by the Kubernetes-Vault controller.
+
+##### tls *(optional)*
+If Vault is secured using TLS (https), then you need to set one of the following:
+
+###### vaultCABackends *(optional)*
+If Vault uses itself as a certificate authority, provide the list of root PKI backends here.
+
+###### caCert *(optional)*
+If Vault uses an external CA, provide the absolute path to a file containing the CA certificates in PEM format.
+
+##### Example (using Vault as a CA):
+```yaml
+vault:
+  addr: http://vault:8200
+  token: 91526d9b-4850-3405-02a8-aa29e74e17a5
+  tls:
+    - root-ca
+```
+
+#### kubernetes *(required)*
+Settings for talking to the Kubernetes API server.
+
+##### namespace *(required)*
+The Kubernetes namespace to watch for newly created pods.
+
+##### service *(required)*
+The Kubernetes service being used by the Kubernetes-Vault controller, so that it can discover other Kubernetes-Vault
+controllers to form a cluster.
+
+##### Example:
+```yaml
+kubernetes:
+  # Note the use of an environment variable here, which will be expanded by the controller
+  namespace: ${KUBERNETES_NAMESPACE}
+  service: kubernetes-vault
+```
+
+#### prometheus *(optional)*
+Configuration for the Prometheus endpoint.
+
+##### tls *(optional)*
+TLS configuration for the Prometheus endpoint. You can use Vault as the CA or an external CA. If using Vault as the CA,
+you must set `vaultCertBackend`, `vaultCertRole`, `vaultCABackends`. Otherwise, set `certFile`, `certKey`, and `caCert`
+if using an external CA.
+
+###### vaultCertBackend *(optional)*
+The Vault PKI backend to be used to issue certificates for securing the Prometheus metrics endpoint.
+
+###### vaultCertRole *(optional)*
+The Vault PKI role to be used to issue certificates for securing the Prometheus metrics endpoint.
+
+###### vaultCABackends *(optional)*
+If you want to enable client TLS authentication against the Prometheus scrappers, set the list of Vault PKI backend
+being used as a certificate authority for those scrappers here.
+
+###### certFile *(optional)*
+If using an external CA, provide the absolute path to the certificate in PEM format here.
+
+###### certKey *(optional)*
+If using an external CA, provide the absolute path to the key for the certificate in PEM format here.
+
+###### caCert *(optional)*
+If you want to enable client TLS authentication against the Prometheus scrappers, provide the absolute path to the file
+containing the root certificates in PEM format here.
+
+##### Example:
+```yaml
+prometheus:
+  tls:
+    # Note that vaultCABackends is not set, so TLS client authentication for the scrappers will not be 
+    # enabled.
+    vaultCertBackend: intermediate-ca
+    vaultCertRole: kubernetes-vault
+```
+
+### Init container configuration
+The init containers are configured using environment variables and Kubernetes annotations.
+
+#### Environment variables
 
 | Environment Variable  | Description                                                                              | Required  | Default Value                                | Example                                 |
 |-----------------------|------------------------------------------------------------------------------------------|-----------|----------------------------------------------|-----------------------------------------|
 | VAULT_ROLE_ID         | The Vault role id.                                                                       | `yes`     | `none`                                       | `313b0821-4ff6-1df8-54dd-c3eea5d3b8b1`  |
 | CREDENTIALS_PATH      | The location where the Vault token and CA Bundle (if it exists) will be written          | `no`      | `/var/run/secrets/boostport.com`             | `/var/run/my/path`                      |
 
-### Init container annotations
+#### Pod annotations
 
 | Annotation                              | Description                         | Required  | Default Value | Example       |
 |-----------------------------------------|-------------------------------------|-----------|---------------|---------------|

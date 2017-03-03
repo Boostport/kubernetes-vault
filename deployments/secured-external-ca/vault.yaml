@@ -1,0 +1,139 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: vault
+  labels:
+    app: vault
+spec:
+  ports:
+    - name: vault
+      port: 8200
+  selector:
+    app: vault
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vault
+data:
+  conf.hcl: |-
+    listener "tcp" {
+        address = "0.0.0.0:8200"
+        tls_cert_file = "/vault/config/cert.pem"
+        tls_key_file = "/vault/config/cert.key"
+    }
+
+    backend "inmem" {
+    }
+
+  cert.pem: |-
+    -----BEGIN CERTIFICATE-----
+    MIIDxTCCAq2gAwIBAgIUZxUEkxMNjZqD4ojR8Yxhog/oQ9swDQYJKoZIhvcNAQEL
+    BQAwGjEYMBYGA1UEAxMPSW50ZXJtZWRpYXRlIENBMB4XDTE3MDMwMTIyMTgwN1oX
+    DTE3MDMwMjIyMTgzN1owEDEOMAwGA1UEAxMFdmF1bHQwggEiMA0GCSqGSIb3DQEB
+    AQUAA4IBDwAwggEKAoIBAQDaltb4Asqdc528AihN+Jahf/R8sAOVGSFIgMb+zS/Q
+    eebqB77m8oekaATIexNDIu6hptWpOhHv1X6rs0YjxP+sMBP7Q9H4OVhEKPbzXHk1
+    El/61iLiQkARBQGXGAWcs1MCjOtzzeSv1fP7UoA8s3FrNQN95JeM9HkIJsrukRKl
+    /y6u2eDDWSMf3ODKENs8lmvuTqYOI6t9CUE+N7TUmiP65JcyAXz6HHLysmCMXOkW
+    5k8Y1JHKU20QrI5e3Sgw7ER9d1ChdCaz1Z8U6sd1zkITl7SQyZ9/7PK4GZg9ylHN
+    ckFE7oBzHC3eK6Dza36vvYFb7eAVGVavTwYfhcGK8hWPAgMBAAGjggELMIIBBzAO
+    BgNVHQ8BAf8EBAMCA6gwHQYDVR0lBBYwFAYIKwYBBQUHAwEGCCsGAQUFBwMCMB0G
+    A1UdDgQWBBQIzi4R6p6IfG/UKWvTp4O6aiwxCzAfBgNVHSMEGDAWgBQR8u+UjOHq
+    rqg4b/kPJA9yB9U++zBDBggrBgEFBQcBAQQ3MDUwMwYIKwYBBQUHMAKGJ2h0dHA6
+    Ly92YXVsdDo4MjAwL3YxL2ludGVybWVkaWF0ZS1jYS9jYTAWBgNVHREEDzANggV2
+    YXVsdIcEfwAAATA5BgNVHR8EMjAwMC6gLKAqhihodHRwOi8vdmF1bHQ6ODIwMC92
+    MS9pbnRlcm1lZGlhdGUtY2EvY3JsMA0GCSqGSIb3DQEBCwUAA4IBAQAhZrKclqSN
+    UqmwmoS4GWyaK8Z8S6/BlJRx2rNZkYlQbbbimzcIlzUxFPHDepSPJbQnOPLDSp0L
+    2QYBviujTIyip0W/Y9RPZc0wLrzZERLU4le+Z9qzJ/5eQn43zrBvQKsC1vnOx+HO
+    JEWV91UkixZDLOhZhQv0o7er3Fai4rLz7+uTOFErkvA0UghNrTZO6OtzJOFvQIBR
+    51z8GkdV39J8DafqJz8yy3DcO/MEoT9N4hlkQF/4z680ugsBy9ePJkRe3K+eeO7/
+    TTxV+bhUv9G0hQ4I6P5noPgrpoIp6Y6AHYxqwN61tSwLn6bVL9PABpb+2wLcjzVC
+    yeoPFOd0H0jQ
+    -----END CERTIFICATE-----
+    -----BEGIN CERTIFICATE-----
+    MIIDjzCCAnegAwIBAgIUKKS6n9WQGD2XSyN7+oS9kApMiMswDQYJKoZIhvcNAQEL
+    BQAwEjEQMA4GA1UEAxMHUm9vdCBDQTAeFw0xNzAzMDEyMjExNDNaFw0xNzA0MDIy
+    MjEyMTNaMBoxGDAWBgNVBAMTD0ludGVybWVkaWF0ZSBDQTCCASIwDQYJKoZIhvcN
+    AQEBBQADggEPADCCAQoCggEBANbI5f4DbMxmWGHye6cPMNnH0B6xpKKQHOPsBoP0
+    pWVXbyLlgGSidWG16qgOFyhU5fH6ed0Fmzzta5hQnu8kqKG1r4KMkOQgj2SsemGb
+    BzvFrnGwxSzA0gDlS16qAqOmhlQ4EX8SUIJ9N2iat2aKE+GgntIpR8Vi/n/optXB
+    d3G6lmERf0nw1xS87+Ip2438+8scePLHsUTvOPckUE5U4uSIrr1Gv6HNiGvLnvWO
+    giRAnur/ikDDU1jHY/gqnzjrHZyj2MZkMeeALreMxFl0fnyPffe5WQeFFJ8BgkI2
+    iqPTnEtGGvsEKAWCoAicvXty2U/ByPlvfYvUGBZYJUOjK6UCAwEAAaOB1DCB0TAO
+    BgNVHQ8BAf8EBAMCAQYwDwYDVR0TAQH/BAUwAwEB/zAdBgNVHQ4EFgQUEfLvlIzh
+    6q6oOG/5DyQPcgfVPvswHwYDVR0jBBgwFoAUPhlpd5lroV3b7nxeVQTrOH0WHsgw
+    OwYIKwYBBQUHAQEELzAtMCsGCCsGAQUFBzAChh9odHRwOi8vdmF1bHQ6ODIwMC92
+    MS9yb290LWNhL2NhMDEGA1UdHwQqMCgwJqAkoCKGIGh0dHA6Ly92YXVsdDo4MjAw
+    L3YxL3Jvb3QtY2EvY3JsMA0GCSqGSIb3DQEBCwUAA4IBAQCXvaglJ2Sc04vz7m6f
+    t08LXIXeFyXGSs1YX7UarWf9V12g6UQwGgb+NrN7x1wuWHrEahmQl+SxTtXvbQqB
+    ipHAzCbFV/pSPcF4LQkDcY6iXYakzeeFB4rgP+g2W/3i6VV0jGPaD1p4Ttv3hpIh
+    l2Nrwp/wR7VcO/df2NulcFEPIqOiKI8GqTA3HkZFg/tIlymMxQc7zZPBiSqC7TyY
+    KegKN2G/VDOLoFnvcUq033A+yF3ULabpT8CuScV2kPU+XFYMM9+n0GDRwiU0C6g0
+    XbxuRKVbfKEVvUP/R9+Kpthm4TGmHCy2EyuieRlLXdgnWqyZV+jYu9E7a+hcU61B
+    fLha
+    -----END CERTIFICATE-----
+
+  cert.key: |-
+    -----BEGIN RSA PRIVATE KEY-----
+    MIIEowIBAAKCAQEA2pbW+ALKnXOdvAIoTfiWoX/0fLADlRkhSIDG/s0v0Hnm6ge+
+    5vKHpGgEyHsTQyLuoabVqToR79V+q7NGI8T/rDAT+0PR+DlYRCj281x5NRJf+tYi
+    4kJAEQUBlxgFnLNTAozrc83kr9Xz+1KAPLNxazUDfeSXjPR5CCbK7pESpf8urtng
+    w1kjH9zgyhDbPJZr7k6mDiOrfQlBPje01Joj+uSXMgF8+hxy8rJgjFzpFuZPGNSR
+    ylNtEKyOXt0oMOxEfXdQoXQms9WfFOrHdc5CE5e0kMmff+zyuBmYPcpRzXJBRO6A
+    cxwt3iug82t+r72BW+3gFRlWr08GH4XBivIVjwIDAQABAoIBAHRS6Ts6YRDBQiOX
+    ElPMAn0XVsgz8vQZV3j57uwRzWwoMxY/4PuN/Vkkcccul+WWZV9pJTLVUE5NUweU
+    c7L9VwIO49NHGCn8elhrZF/FykrP6HvYEOBPWUC1ZU8+3V2yoG4vB+2smBJqzVfl
+    Y5Dp/WWL5LvONkgwoWgRHNUwJrhmxDU/7reoPg6ncGxZpPRNsUtFUy43apR2Lg9i
+    1ZRHfDCqFiBxT/TZikukFHzV6RAR0AShKyghxmLYmV4nw4yxKM5/NcMTDkrY7tAH
+    C5VWLx7kp9Gz469I6ExnU7rRc7PjOm9Sl0o0PtMShjUwXlErc3/Vr5e/pUHUm4K4
+    Jj2CeMECgYEA4sLedabxcGJ5oRQhAY/vUf04jrp155O2PkwEjIB3rqewecucl8ZP
+    7rqpUpiYn119YPuX2fFV2qzM1WjCZVvtW37IIW3GYg4P/7/patDsi1RvuW+k/H3i
+    KPMM5EsCFCEHFA/uKYdJwgpYmy6Pv9jvHm3uhoBU6lLsQnneSz25nUcCgYEA9sY4
+    /S+OYjXQ8u7LWEP19CWYHR1IZ5nPA7ozl0L62L2mg8sMXlSknvVPMoeNogcyJDz/
+    S9F/H8n4Wt4yPMuBwwiMruB2lqdr//tho9eTUPGSKQ/4DmrMZhQ1xzkQa+hSwqp/
+    Ry2BnJnxjHrodmTQLC0lBkXhIZExXnGv+EV2yXkCgYBuBAVSJ3C0CdLg55cr3t1J
+    dgVemfBiLjQY/WCnmhx2zDy+mp6atEhLlpxXylkh2IXf67C8uG3i7jtivrSx4GvE
+    HDqUnWHGaPQyLLXecQaSgqDB4vy0045KN8FlcU7M3UlF3oS5+T07uzFJ+MkdVu6M
+    YOF8t/56wUiG6AGFl6jaOQKBgQCtMbnVmIbpzrNzjL0SmcAJNkloRaEHdR+hkhGb
+    W9sKOzCe1uc7XVSca7bF0/VHfp1maZkT8VizSuEPhVrk6D+OTnXOVqNkYOSfqCKD
+    B03RRXo7b4W9OJ90FUMZK6em1EshbOAfaITLEBBDdA+q6F5iYtzVZj33fRuVGV1T
+    dg1EoQKBgDUcCG2CE8CYvgBZXTbPzEqgaoF72NoBnD7SMoEfQiESxXxuG9ieAOYh
+    2HE19bq7sND1G/9mBJ/++daEAolNiA1/VU/RDV48JEyjxH7AKH++2pIECjZaF2sQ
+    h7GCGkAT6R07pLQnbW8CZd4lVOj47npRQayu36CDMTBztkYJ33b5
+    -----END RSA PRIVATE KEY-----
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: vault
+  name: vault
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: vault
+    spec:
+      containers:
+      - image: vault:0.6.5
+        command:
+          - vault
+          - server
+          - -config=/vault/config/
+        name: vault
+        ports:
+        - containerPort: 8200
+          name: vaultport
+          protocol: TCP
+        volumeMounts:
+        - name: config-volume
+          mountPath: /vault/config
+        securityContext:
+         capabilities:
+           add:
+             - IPC_LOCK
+      volumes:
+        - name: config-volume
+          configMap:
+            name: vault
