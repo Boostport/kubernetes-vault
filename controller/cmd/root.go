@@ -1,18 +1,15 @@
 package cmd
 
 import (
+	"crypto/tls"
+	"crypto/x509"
+	"io/ioutil"
 	"math/rand"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
 	"time"
-
-	"crypto/tls"
-
-	"crypto/x509"
-
-	"io/ioutil"
 
 	"github.com/Boostport/kubernetes-vault/common"
 	"github.com/Boostport/kubernetes-vault/controller/client"
@@ -43,8 +40,9 @@ type config struct {
 	} `mapstructure:"vault"`
 
 	Kubernetes struct {
-		Namespace string `mapstructure:"namespace"`
-		Service   string `mapstructure:"service"`
+		WatchNamespace   string `mapstructure:"watchNamespace"`
+		ServiceNamespace string `mapstructure:"serviceNamespace"`
+		Service          string `mapstructure:"service"`
 	} `mapstructure:"kubernetes"`
 
 	Prometheus struct {
@@ -90,8 +88,12 @@ func (c *config) Validate() error {
 		errs = multierror.Append(errs, errors.New(`Contraditory Vault TLS configuration. You must use either Vault CA backends (vault.tls.vaultCABackends) or your own Root CA file (vault.tls.caCertFilePath) to verify the Vault server TLS certificate, not both.`))
 	}
 
-	if c.Kubernetes.Namespace == "" {
-		errs = multierror.Append(errs, errors.New("kubernetes.namespace is required"))
+	if c.Kubernetes.WatchNamespace == "" {
+		errs = multierror.Append(errs, errors.New("kubernetes.watchNamespace is required"))
+	}
+
+	if c.Kubernetes.ServiceNamespace == "" {
+		errs = multierror.Append(errs, errors.New("kubernetes.serviceNamespace is required"))
 	}
 
 	if c.Kubernetes.Service == "" {
@@ -196,7 +198,7 @@ var RootCmd = &cobra.Command{
 			logger.Fatalf("Could not determine external ip address: %s", err)
 		}
 
-		kube, err := client.NewKube(conf.Kubernetes.Namespace)
+		kube, err := client.NewKube(conf.Kubernetes.WatchNamespace)
 
 		if err != nil {
 			logger.Fatalf("Could not create the kubernetes client: %s", err)
@@ -205,7 +207,7 @@ var RootCmd = &cobra.Command{
 		// Wait between 3 and 10 seconds before discovering other nodes
 		time.Sleep(time.Duration(rand.Intn(7)+3) * time.Second)
 
-		nodes, err := kube.Discover(conf.Kubernetes.Service)
+		nodes, err := kube.Discover(conf.Kubernetes.ServiceNamespace, conf.Kubernetes.Service)
 
 		if err != nil {
 			logger.Fatalf("Error while discovering nodes: %s", err)

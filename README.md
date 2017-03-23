@@ -75,8 +75,8 @@ The controller automatically expands any environment variables used in the confi
 `${VARIABLE}` notation. For example, if you set `raftDir: ${MY_DIR}` and set the `$MY_DIR` environment variable to `/tmp`, it 
  expands to: `raftDir: /tmp`.
  
- By default, the controller looks for configuration in `kubernetes-vault.yml` in the current working directory, but you
- can override this by setting the `-config` flag with the absolute path to your config file.
+By default, the controller looks for configuration in `kubernetes-vault.yml` in the current working directory, but you
+can override this by setting the `-config` flag with the absolute path to your config file.
 
 The available configuration options in the config file are:
 
@@ -118,18 +118,31 @@ vault:
 #### kubernetes *(required)*
 Settings for talking to the Kubernetes API server.
 
-* namespace *(required)*
-The Kubernetes namespace to watch for newly created pods.
+* watchNamespace *(required)*
+The namespace to watch for newly created pods. If you want to watch for pods across multiple namespaces, you can prefix
+it with `~` followed by a regex pattern. For example, using `~^(staging|default)$` will watch for pods in both the
+`staging` and `default` namespaces.
+
+*IMPORTANT*: If you are using regex to watch multiple namespaces, make sure `vault.addr` is set to the FULL DNS name of
+your Vault server. For example: `https://vault.default:8200` or `https://vault.staging:8200`. This is because the Vault
+address is pushed to the watched pods, and those pods will only be able to communicate with pods outside their own
+namespace using the FULL DNS name.
+
+* serviceNamespace *(required)*
+The Kubernetes namespace the Kubernetes-Vault controller's service is in. This parameter and the `service` parameter 
+is used to discover other Kubernetes-Vault controllers to form a cluster.
 
 * service *(required)*
-The Kubernetes service being used by the Kubernetes-Vault controller, so that it can discover other Kubernetes-Vault
-controllers to form a cluster.
+The Kubernetes service being used by the Kubernetes-Vault controller. Used in conjunction with `serviceNamespace` so
+that it can discover other Kubernetes-Vault controllers to form a cluster.
 
 ##### Example:
 ```yaml
 kubernetes:
+  # For watchNamespace, you can use a regex by prefixing it with ~. For example: ~^(staging|default)$
+  watchNamespace: default
   # Note the use of an environment variable here, which will be expanded by the controller
-  namespace: ${KUBERNETES_NAMESPACE}
+  serviceNamespace: ${KUBERNETES_NAMESPACE}
   service: kubernetes-vault
 ```
 

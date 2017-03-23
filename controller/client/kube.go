@@ -2,6 +2,7 @@ package client
 
 import (
 	"encoding/json"
+	"regexp"
 
 	"github.com/Boostport/kubernetes-vault/common"
 	"github.com/pkg/errors"
@@ -18,8 +19,8 @@ const (
 )
 
 type Kube struct {
-	client    *kubernetes.Clientset
-	namespace string
+	client              *kubernetes.Clientset
+	watchNamespaceRegex *regexp.Regexp
 }
 
 type Pod struct {
@@ -38,13 +39,17 @@ func (k *Kube) GetPods() ([]Pod, error) {
 
 	p := []Pod{}
 
-	pods, err := k.client.CoreV1().Pods(k.namespace).List(v1.ListOptions{})
+	pods, err := k.client.CoreV1().Pods("").List(v1.ListOptions{})
 
 	if err != nil {
 		return p, errors.Wrap(err, "could not list pods")
 	}
 
 	for _, pod := range pods.Items {
+
+		if !k.isInWatchedNamespace(pod.Namespace) {
+			continue
+		}
 
 		convertedPod, err := convertToPod(&pod)
 
@@ -61,7 +66,7 @@ func (k *Kube) WatchForPods() (<-chan Pod, chan<- struct{}, error) {
 	events := make(chan Pod, 1024)
 	stop := make(chan struct{})
 
-	watcher, err := k.client.CoreV1().Pods(k.namespace).Watch(v1.ListOptions{
+	watcher, err := k.client.CoreV1().Pods("").Watch(v1.ListOptions{
 		Watch: true,
 	})
 
@@ -84,10 +89,13 @@ func (k *Kube) watch(watcher watch.Interface, events chan<- Pod, stop <-chan str
 			if event.Type == "ADDED" || event.Type == "MODIFIED" {
 
 				if pod, ok := event.Object.(*v1.Pod); ok {
-					convertedPod, err := convertToPod(pod)
 
-					if err == nil {
-						events <- convertedPod
+					if k.isInWatchedNamespace(pod.Namespace) {
+						convertedPod, err := convertToPod(pod)
+
+						if err == nil {
+							events <- convertedPod
+						}
 					}
 				}
 			}
@@ -139,11 +147,11 @@ func convertToPod(pod *v1.Pod) (Pod, error) {
 	return Pod{}, errors.Errorf("Pod (%s) is not ready yet", pod.Name)
 }
 
-func (k *Kube) Discover(service string) ([]string, error) {
+func (k *Kube) Discover(serviceNamespace, service string) ([]string, error) {
 
 	ips := []string{}
 
-	endpoints, err := k.client.CoreV1().Endpoints(k.namespace).Get(service)
+	endpoints, err := k.client.CoreV1().Endpoints(serviceNamespace).Get(service)
 
 	if err != nil {
 		return ips, errors.Wrapf(err, "could not get endpoints for the service %s", service)
@@ -165,7 +173,30 @@ func (k *Kube) Discover(service string) ([]string, error) {
 	return ips, nil
 }
 
-func NewKube(namespace string) (*Kube, error) {
+func (k *Kube) isInWatchedNamespace(namespace string) bool {
+	return k.watchNamespaceRegex.MatchString(namespace)
+}
+
+func NewKube(watchNamespace string) (*Kube, error) {
+
+	var (
+		r   *regexp.Regexp
+		err error
+	)
+
+	if string(watchNamespace[0]) == "~" {
+		r, err = regexp.Compile("(?i)" + string(watchNamespace[1:]))
+
+		if err != nil {
+			return nil, errors.Wrap(err, "invalid regex for watching namespace")
+		}
+	} else {
+		r, err = regexp.Compile("(?i)^" + regexp.QuoteMeta(watchNamespace) + "$")
+
+		if err != nil {
+			return nil, errors.Wrap(err, "invalid watch namespace")
+		}
+	}
 
 	config, err := rest.InClusterConfig()
 
@@ -180,7 +211,7 @@ func NewKube(namespace string) (*Kube, error) {
 	}
 
 	return &Kube{
-		client:    clientset,
-		namespace: namespace,
+		client:              clientset,
+		watchNamespaceRegex: r,
 	}, nil
 }
