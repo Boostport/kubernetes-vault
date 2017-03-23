@@ -123,10 +123,10 @@ The namespace to watch for newly created pods. If you want to watch for pods acr
 it with `~` followed by a regex pattern. For example, using `~^(staging|default)$` will watch for pods in both the
 `staging` and `default` namespaces.
 
-*IMPORTANT*: If you are using regex to watch multiple namespaces, make sure `vault.addr` is set to the FULL DNS name of
-your Vault server. For example: `https://vault.default:8200` or `https://vault.staging:8200`. This is because the Vault
-address is pushed to the watched pods, and those pods will only be able to communicate with pods outside their own
-namespace using the FULL DNS name.
+  **IMPORTANT**: If you are using regex to watch multiple namespaces, make sure `vault.addr` is set to the FULL DNS name of
+  your Vault server. For example: `https://vault.default:8200` or `https://vault.staging:8200`. This is because the Vault
+  address is pushed to the watched pods, and those pods will only be able to communicate with pods outside their own
+  namespace using the FULL DNS name.
 
 * serviceNamespace *(required)*
 The Kubernetes namespace the Kubernetes-Vault controller's service is in. This parameter and the `service` parameter 
