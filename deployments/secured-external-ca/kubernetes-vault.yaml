@@ -28,7 +28,8 @@ data:
         caCert: /kubernetes-vault/ca.pem
 
     kubernetes:
-      namespace: ${KUBERNETES_NAMESPACE}
+      watchNamespace: ${KUBERNETES_NAMESPACE}
+      serviceNamespace: ${KUBERNETES_NAMESPACE}
       service: kubernetes-vault
 
     prometheus:
@@ -146,7 +147,7 @@ spec:
     spec:
       containers:
       - name: kubernetes-vault
-        image: boostport/kubernetes-vault:0.3.0
+        image: boostport/kubernetes-vault:0.4.0
         imagePullPolicy: Always
         env:
         - name: KUBERNETES_NAMESPACE
