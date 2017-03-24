@@ -8,7 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"path"
+	"path/filepath"
 	"strconv"
 	"sync"
 	"time"
@@ -85,7 +85,7 @@ func (s *Store) StartRaft(dataDir string, bindAddr string, logOutput io.Writer) 
 
 	port := s.gossip.port + 1
 
-	raftDBPath := path.Join(dataDir, "raft.db")
+	raftDBPath := filepath.Join(dataDir, "raft.db")
 
 	raftDB, err := raftboltdb.NewBoltStore(raftDBPath)
 
