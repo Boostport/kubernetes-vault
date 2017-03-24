@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/signal"
-	"path"
+	"path/filepath"
 	"syscall"
 	"text/tabwriter"
 
@@ -37,8 +37,8 @@ func main() {
 	logger := logrus.New()
 	logger.Level = logrus.DebugLevel
 
-	tokenPath := path.Join(credentialsPath, "vault-token")
-	secretIDPath := path.Join(credentialsPath, "vault-secret-id")
+	tokenPath := filepath.Join(credentialsPath, "vault-token")
+	secretIDPath := filepath.Join(credentialsPath, "vault-secret-id")
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 
@@ -91,7 +91,7 @@ func main() {
 		logger.Fatal("Could not find a vault-token or vault-secret-id.")
 	}
 
-	caBundlePath := path.Join(credentialsPath, "ca.crt")
+	caBundlePath := filepath.Join(credentialsPath, "ca.crt")
 
 	_, err := os.Stat(caBundlePath)
 

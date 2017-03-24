@@ -14,10 +14,9 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"path"
-	"time"
-
+	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/Boostport/kubernetes-vault/common"
 	"github.com/Sirupsen/logrus"
@@ -159,9 +158,9 @@ func main() {
 			}
 
 			if retrieveToken {
-				tokenPath = path.Join(credentialsPath, "vault-token")
+				tokenPath = filepath.Join(credentialsPath, "vault-token")
 			} else {
-				tokenPath = path.Join(credentialsPath, "vault-secret-id")
+				tokenPath = filepath.Join(credentialsPath, "vault-secret-id")
 			}
 
 			err = ioutil.WriteFile(tokenPath, b, 0444)
@@ -177,7 +176,7 @@ func main() {
 
 			if len(wrappedSecretId.VaultCAs) > 0 {
 
-				caBundlePath := path.Join(credentialsPath, "ca.crt")
+				caBundlePath := filepath.Join(credentialsPath, "ca.crt")
 
 				err = ioutil.WriteFile(caBundlePath, wrappedSecretId.VaultCAs, 0444)
 
