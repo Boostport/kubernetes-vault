@@ -116,7 +116,7 @@ spec:
         app: vault
     spec:
       containers:
-      - image: vault:0.6.5
+      - image: vault:0.7.0
         command:
           - vault
           - server
