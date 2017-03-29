@@ -61,8 +61,9 @@ the file `ca.crt`. Use the CA bundle when connecting to Vault using your applica
 verified.
 
 ## Configuration
-The project consists of 2 containers, a controller container that watches the Kubernetes cluster and pushes `secret_id`s to pods and an init container that
-receives the `secret_id` and exchanges it for an auth token. These 2 containers are configured using environment variables. The init container also requires
+The project consists of 2 containers, a controller container that watches the Kubernetes cluster and pushes `secret_id`s
+to pods and an init container that receives the `secret_id` and exchanges it for an auth token. The controller is
+configuered using a YAML file and the init container uses environment variables. The init container also requires
 configuration using Kubernetes annotations.
 
 For full examples of configuration files, check out the ConfigMaps in the [quick start](deployments/quick-start/kubernetes-vault.yaml) and [secured](deployments/secured-external-ca/kubernetes-vault.yaml) examples.
