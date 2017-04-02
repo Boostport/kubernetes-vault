@@ -4,12 +4,14 @@ import (
 	"encoding/json"
 	"regexp"
 
+	"context"
+	"time"
+
 	"github.com/Boostport/kubernetes-vault/common"
+	"github.com/Sirupsen/logrus"
+	"github.com/ericchiang/k8s"
+	"github.com/ericchiang/k8s/api/v1"
 	"github.com/pkg/errors"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/pkg/api/v1"
-	"k8s.io/client-go/pkg/watch"
-	"k8s.io/client-go/rest"
 )
 
 const (
@@ -19,8 +21,9 @@ const (
 )
 
 type Kube struct {
-	client              *kubernetes.Clientset
+	client              *k8s.Client
 	watchNamespaceRegex *regexp.Regexp
+	logger              *logrus.Logger
 }
 
 type Pod struct {
@@ -39,7 +42,9 @@ func (k *Kube) GetPods() ([]Pod, error) {
 
 	p := []Pod{}
 
-	pods, err := k.client.CoreV1().Pods("").List(v1.ListOptions{})
+	ctx, _ := context.WithTimeout(context.Background(), 20*time.Second)
+
+	pods, err := k.client.CoreV1().ListPods(ctx, k8s.AllNamespaces)
 
 	if err != nil {
 		return p, errors.Wrap(err, "could not list pods")
@@ -47,11 +52,11 @@ func (k *Kube) GetPods() ([]Pod, error) {
 
 	for _, pod := range pods.Items {
 
-		if !k.isInWatchedNamespace(pod.Namespace) {
+		if !k.isInWatchedNamespace(*pod.Metadata.Namespace) {
 			continue
 		}
 
-		convertedPod, err := convertToPod(&pod)
+		convertedPod, err := convertToPod(pod)
 
 		if err == nil {
 			p = append(p, convertedPod)
@@ -66,9 +71,9 @@ func (k *Kube) WatchForPods() (<-chan Pod, chan<- struct{}, error) {
 	events := make(chan Pod, 1024)
 	stop := make(chan struct{})
 
-	watcher, err := k.client.CoreV1().Pods("").Watch(v1.ListOptions{
-		Watch: true,
-	})
+	ctx, _ := context.WithTimeout(context.Background(), 20*time.Second)
+
+	watcher, err := k.client.CoreV1().WatchPods(ctx, k8s.AllNamespaces)
 
 	if err != nil {
 		return events, stop, errors.Wrap(err, "could not create watcher")
@@ -79,18 +84,17 @@ func (k *Kube) WatchForPods() (<-chan Pod, chan<- struct{}, error) {
 	return events, stop, nil
 }
 
-func (k *Kube) watch(watcher watch.Interface, events chan<- Pod, stop <-chan struct{}) {
+func (k *Kube) watch(watcher *k8s.CoreV1PodWatcher, events chan<- Pod, stop <-chan struct{}) {
 
 	for {
 		select {
 
-		case event := <-watcher.ResultChan():
-
-			if event.Type == "ADDED" || event.Type == "MODIFIED" {
-
-				if pod, ok := event.Object.(*v1.Pod); ok {
-
-					if k.isInWatchedNamespace(pod.Namespace) {
+		default:
+			if event, pod, err := watcher.Next(); err != nil {
+				k.logger.Errorf("Error getting next watch: %s", err)
+			} else {
+				if *event.Type == k8s.EventAdded || *event.Type == k8s.EventModified {
+					if k.isInWatchedNamespace(*pod.Metadata.Namespace) {
 						convertedPod, err := convertToPod(pod)
 
 						if err == nil {
@@ -101,7 +105,7 @@ func (k *Kube) watch(watcher watch.Interface, events chan<- Pod, stop <-chan str
 			}
 
 		case <-stop:
-			watcher.Stop()
+			watcher.Close()
 			return
 		}
 	}
@@ -110,9 +114,9 @@ func (k *Kube) watch(watcher watch.Interface, events chan<- Pod, stop <-chan str
 func convertToPod(pod *v1.Pod) (Pod, error) {
 
 	initContainerReady := false
-	role, hasRole := pod.Annotations[RoleAnnotation]
-	initContainerName, hasInitContainerName := pod.Annotations[InitContainerAnnotation]
-	initStatus, hasInitStatus := pod.Annotations[InitContainerStatusAnnotation]
+	role, hasRole := pod.Metadata.Annotations[RoleAnnotation]
+	initContainerName, hasInitContainerName := pod.Metadata.Annotations[InitContainerAnnotation]
+	initStatus, hasInitStatus := pod.Metadata.Annotations[InitContainerStatusAnnotation]
 
 	if initStatus != "" {
 		var initContainers []InitContainerStatus
@@ -137,21 +141,23 @@ func convertToPod(pod *v1.Pod) (Pod, error) {
 
 	if hasRole && hasInitContainerName && hasInitStatus && initContainerReady {
 		return Pod{
-			Name: pod.Name,
+			Name: *pod.Metadata.Name,
 			Role: role,
-			Ip:   pod.Status.PodIP,
+			Ip:   *pod.Status.PodIP,
 			Port: common.InitContainerPort,
 		}, nil
 	}
 
-	return Pod{}, errors.Errorf("Pod (%s) is not ready yet", pod.Name)
+	return Pod{}, errors.Errorf("Pod (%s) is not ready yet", *pod.Metadata.Name)
 }
 
 func (k *Kube) Discover(serviceNamespace, service string) ([]string, error) {
 
 	ips := []string{}
 
-	endpoints, err := k.client.CoreV1().Endpoints(serviceNamespace).Get(service)
+	ctx, _ := context.WithTimeout(context.Background(), 20*time.Second)
+
+	endpoints, err := k.client.CoreV1().GetEndpoints(ctx, service, serviceNamespace)
 
 	if err != nil {
 		return ips, errors.Wrapf(err, "could not get endpoints for the service %s", service)
@@ -160,11 +166,11 @@ func (k *Kube) Discover(serviceNamespace, service string) ([]string, error) {
 	for _, subset := range endpoints.Subsets {
 
 		for _, endpoint := range subset.Addresses {
-			ips = append(ips, endpoint.IP)
+			ips = append(ips, *endpoint.Ip)
 		}
 
 		for _, endpoint := range subset.NotReadyAddresses {
-			ips = append(ips, endpoint.IP)
+			ips = append(ips, *endpoint.Ip)
 		}
 	}
 
@@ -177,7 +183,7 @@ func (k *Kube) isInWatchedNamespace(namespace string) bool {
 	return k.watchNamespaceRegex.MatchString(namespace)
 }
 
-func NewKube(watchNamespace string) (*Kube, error) {
+func NewKube(watchNamespace string, logger *logrus.Logger) (*Kube, error) {
 
 	var (
 		r   *regexp.Regexp
@@ -198,20 +204,15 @@ func NewKube(watchNamespace string) (*Kube, error) {
 		}
 	}
 
-	config, err := rest.InClusterConfig()
-
-	if err != nil {
-		return nil, errors.Wrap(err, "could not create kubernetes config")
-	}
-
-	clientset, err := kubernetes.NewForConfig(config)
+	client, err := k8s.NewInClusterClient()
 
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create kubernetes client")
 	}
 
 	return &Kube{
-		client:              clientset,
+		client:              client,
 		watchNamespaceRegex: r,
+		logger:              logger,
 	}, nil
 }
