@@ -198,7 +198,7 @@ var RootCmd = &cobra.Command{
 			logger.Fatalf("Could not determine external ip address: %s", err)
 		}
 
-		kube, err := client.NewKube(conf.Kubernetes.WatchNamespace)
+		kube, err := client.NewKube(conf.Kubernetes.WatchNamespace, logger)
 
 		if err != nil {
 			logger.Fatalf("Could not create the kubernetes client: %s", err)
