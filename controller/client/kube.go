@@ -9,6 +9,7 @@ import (
 
 	"github.com/Boostport/kubernetes-vault/common"
 	"github.com/Sirupsen/logrus"
+	"github.com/cenkalti/backoff"
 	"github.com/ericchiang/k8s"
 	"github.com/ericchiang/k8s/api/v1"
 	"github.com/pkg/errors"
@@ -71,28 +72,57 @@ func (k *Kube) WatchForPods() (<-chan Pod, chan<- struct{}, error) {
 	events := make(chan Pod, 1024)
 	stop := make(chan struct{})
 
-	ctx, _ := context.WithTimeout(context.Background(), 20*time.Second)
-
-	watcher, err := k.client.CoreV1().WatchPods(ctx, k8s.AllNamespaces)
-
-	if err != nil {
-		return events, stop, errors.Wrap(err, "could not create watcher")
-	}
-
-	go k.watch(watcher, events, stop)
+	go k.watch(events, stop)
 
 	return events, stop, nil
 }
 
-func (k *Kube) watch(watcher *k8s.CoreV1PodWatcher, events chan<- Pod, stop <-chan struct{}) {
+func (k *Kube) watch(events chan<- Pod, stop <-chan struct{}) {
+
+	// Last observed resource version.
+	resourceVersion := ""
+
+	// Channels used for each instance of the watch.
+	errCh := make(chan error, 1)
+
+	var (
+		watcher *k8s.CoreV1PodWatcher
+		err     error
+	)
 
 	for {
-		select {
+		opt := k8s.ResourceVersion(resourceVersion)
 
-		default:
-			if event, pod, err := watcher.Next(); err != nil {
-				k.logger.Errorf("Error getting next watch: %s", err)
-			} else {
+		operation := func() error {
+			ctx, _ := context.WithTimeout(context.Background(), 20*time.Second)
+
+			watcher, err = k.client.CoreV1().WatchPods(ctx, k8s.AllNamespaces, opt)
+
+			if err != nil {
+				k.logger.Errorf("Error watching pods: %s", err)
+			}
+
+			return err
+		}
+
+		err := backoff.Retry(operation, backoff.NewExponentialBackOff())
+
+		if err != nil {
+			k.logger.Errorf("Failed to start watcher: %s", err)
+			continue
+		}
+
+		for {
+			go func() {
+				event, pod, err := watcher.Next()
+
+				if err != nil {
+					errCh <- err
+					return
+				}
+
+				resourceVersion = *pod.Metadata.ResourceVersion
+
 				if *event.Type == k8s.EventAdded || *event.Type == k8s.EventModified {
 					if k.isInWatchedNamespace(*pod.Metadata.Namespace) {
 						convertedPod, err := convertToPod(pod)
@@ -102,11 +132,16 @@ func (k *Kube) watch(watcher *k8s.CoreV1PodWatcher, events chan<- Pod, stop <-ch
 						}
 					}
 				}
-			}
+			}()
 
-		case <-stop:
-			watcher.Close()
-			return
+			select {
+			case err := <-errCh:
+				k.logger.Errorf("Error watching pods: %s", err)
+				break
+			case <-stop:
+				watcher.Close()
+				return
+			}
 		}
 	}
 }
