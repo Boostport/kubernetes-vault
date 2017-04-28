@@ -1,4 +1,4 @@
-# Best practices for running Kubernets-Vault in production
+# Best practices for running Kubernetes-Vault in production
 
 * Vault should be configured to use https, so that secrets are secured.
 * Do not provide Kubernetes-Vault with a root token. Instead, give it a periodic token that is heavily restricted (see `deployments/policy.hcl` for an example).
