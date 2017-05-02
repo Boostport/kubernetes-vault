@@ -113,7 +113,8 @@ vault:
   addr: http://vault:8200
   token: 91526d9b-4850-3405-02a8-aa29e74e17a5
   tls:
-    - root-ca
+    vaultCABackends:
+      - root-ca
 ```
 
 #### kubernetes *(required)*
