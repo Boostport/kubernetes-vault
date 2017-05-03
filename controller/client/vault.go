@@ -444,7 +444,21 @@ func (v *Vault) issueCertificate(ip net.IP, backend string, role string) (tls.Ce
 		return tls.Certificate{}, 0, errors.Wrap(err, "could not parse certificate and private key")
 	}
 
-	return cert, secret.LeaseDuration, nil
+	firstCert, err := x509.ParseCertificate(cert.Certificate[0])
+
+	if err != nil {
+		return tls.Certificate{}, 0, errors.Wrap(err, "could not parse certificate to get expiry")
+	}
+
+	duration := firstCert.NotAfter.Sub(time.Now())
+
+	seconds := int(duration.Seconds())
+
+	if seconds < 0 {
+		return tls.Certificate{}, 0, errors.New("issued certificate is expired")
+	}
+
+	return cert, seconds, nil
 }
 
 func (v *Vault) GetAndRenewCertificate(ip net.IP, backend string, role string) (<-chan tls.Certificate, error) {
