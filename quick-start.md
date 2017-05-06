@@ -58,13 +58,48 @@ Send the policy to Vault: `vault policy-write kubernetes-vault policy.hcl`
 Create a token role for Kubernetes-Vault that generates a 6 hour periodic token: `vault write auth/token/roles/kubernetes-vault allowed_policies=kubernetes-vault period=6h`
 
 ### 2.6 Generate the token for Kubernetes-Vault and AppID
-Generate the token: `vault token-create -role=kubernetes-vault`
+Generate the token: `vault token-create -role=kubernetes-vault`. And make a note of the token output. In the example below it would be '00000000-1111-2222-3333-444444444444'
 
-Get the AppID: `vault read auth/approle/role/sample-app/role-id`
+```
+$ vault token-create -role=kubernetes-vault
+
+Key             Value
+---             -----
+token           00000000-1111-2222-3333-444444444444      
+token_accessor  c50fb600-aaaa-bbbb-cccc-xxxxxxxxxxxx
+token_duration  6h0m0s
+token_renewable true
+token_policies  [default kubernetes-vault]
+```
+
+Get the app's role id: `vault read auth/approle/role/sample-app/role-id`
+```
+$ vault read auth/approle/role/sample-app/role-id
+
+Key     Value
+---     -----
+role_id zzzzzzzzz-7777-8888-9999-tttttttttttt
+```
 
 ## 3. Deploy Kubernetes-Vault
 ### 3.1 Prepare the manifest and deploy
-Check `deployments/quick-start/kubernetes-vault.yaml` and update the Vault token in the Kubernetes deployment.
+Check `deployments/quick-start/kubernetes-vault.yaml` and update the Vault token (not the role id) in the Kubernetes deployment.
+
+For example:
+```
+....
+----
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kubernetes-vault
+data:
+  kubernetes-vault.yml: |-
+    vault:
+      addr: http://vault:8200
+      token: "00000000-1111-2222-3333-444444444444"
+...
+```
 
 Deploy: `kubectl apply -f deployments/quick-start/kubernetes-vault.yaml`
 
@@ -73,7 +108,40 @@ Use the Kubernetes dashboard to view the status of the deployment and make sure 
 
 ## 4. Deploy a sample app
 ### 4.1 Prepare the manifest and deploy
-Inspect `deployments/quick-start/sample-app.yaml` and update the role id in the deployment.
+Inspect `deployments/quick-start/sample-app.yaml` and update the role id in the deployment:
+
+```
+...
+spec:
+  replicas: 5
+  template:
+    metadata:
+      labels:
+        app: sample-app
+      annotations:
+        pod.boostport.com/vault-approle: sample-app
+        pod.boostport.com/vault-init-container: install
+        pod.beta.kubernetes.io/init-containers: '[
+          {
+            "name": "install",
+            "image": "boostport/kubernetes-vault-init:0.4.4",
+            "imagePullPolicy": "Always",
+            "env": [
+                {
+                    "name": "VAULT_ROLE_ID",
+                    "value": "zzzzzzzzz-7777-8888-9999-tttttttttttt"
+                }
+            ],
+            "volumeMounts": [
+                {
+                    "name": "vault-token",
+                    "mountPath": "/var/run/secrets/boostport.com"
+                }
+            ]
+          }
+        ]'
+...
+```
 
 Deploy: `kubectl apply -f deployments/quick-start/sample-app.yaml`
 
