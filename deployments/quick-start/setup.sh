@@ -15,7 +15,7 @@ kubectl apply -f vault.yaml
 
 #2. Setup Vault
 # Wait 5 minutes for vault to be deployed.
-maxWaitSecond=300
+maxWaitSecond=10
 vaultPod=$(kubectl get pods -l app=vault | grep ^vault* |awk '{print $1}')
 while [ $maxWaitSecond -gt 0 ] && [ -z "$vaultPod" ]
 do
@@ -31,7 +31,7 @@ fi
 
 echo "Vault pod name: $vaultPod"
 # Wait 10 seconds for vault to be running.
-maxWaitSecond=10
+maxWaitSecond=300
 vaultStatus=$(kubectl get pod "$vaultPod" -o=jsonpath='{.status.phase}')
 while [ $maxWaitSecond -gt 0 ] && [ "$vaultStatus" != "Running" ]
 do
