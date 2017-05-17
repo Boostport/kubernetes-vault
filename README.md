@@ -15,7 +15,7 @@ The Kubernetes-Vault project allows pods to automatically receive a Vault token 
 * You must use Kubernetes 1.4.0 and above as we rely on init containers (in beta) to accept the token.
 * You must generate a periodic token with the correct policy to generate `secret_id`s using the AppRole backend.
 * The Kubernetes-Vault controller uses the Kubernetes service account to watch for new pods. This service account must have the appropriate permissions.
-* Your app should use a [Vault client](https://www.vaultproject.io/docs/http/libraries.html) to renew the token and any secrets you request from Vault.
+* Your app should use a [Vault client](https://www.vaultproject.io/api/libraries.html) to renew the token and any secrets you request from Vault.
 * You should configure Vault to use HTTPS, so that the authentication token and any other secrets cannot be sniffed.
 
 ## Get started
