@@ -145,7 +145,7 @@ func main() {
 			} else {
 				response = secretID{
 					RoleID:    roleID,
-					SecretID:  wrappedSecretId.SecretID,
+					SecretID:  sID,
 					Accessor:  secretIDAccessor,
 					VaultAddr: wrappedSecretId.VaultAddr,
 				}
