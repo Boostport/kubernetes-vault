@@ -14,7 +14,7 @@ spec:
         pod.beta.kubernetes.io/init-containers: '[
           {
             "name": "install",
-            "image": "boostport/kubernetes-vault-init:0.4.4",
+            "image": "boostport/kubernetes-vault-init:0.4.5",
             "imagePullPolicy": "Always",
             "env": [
                 {
@@ -33,7 +33,7 @@ spec:
     spec:
       containers:
       - name: sample-app
-        image: boostport/kubernetes-vault-sample-app:0.4.4
+        image: boostport/kubernetes-vault-sample-app:0.4.5
         volumeMounts:
         - name: vault-token
           mountPath: /var/run/secrets/boostport.com
