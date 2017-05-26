@@ -40,6 +40,13 @@ type secretID struct {
 	VaultAddr string `json:"vaultAddr"`
 }
 
+type wrappedSecretID struct {
+	RoleID          string `json:"roleId"`
+	WrappedSecretID string `json:"wrappedSecretId"`
+	VaultAddr       string `json:"vaultAddr"`
+	TTL             int    `json:"ttl"`
+}
+
 func main() {
 
 	logLevel := os.Getenv("LOG_LEVEL")
@@ -87,6 +94,19 @@ func main() {
 		retrieveToken = false
 	}
 
+
+	unwrapSecret := true
+
+	unwrapSecretId := os.Getenv("UNWRAP_SECRET")
+
+	if strings.ToLower(unwrapSecretId) == "false" {
+		unwrapSecret = false
+	}
+
+	if retrieveToken && !unwrapSecret {
+		logger.Fatal("UNWRAP_SECRET cannot be false if RETRIEVE_TOKEN is true")
+	}
+
 	credentialsPath := os.Getenv("CREDENTIALS_PATH")
 
 	if credentialsPath == "" {
@@ -123,31 +143,45 @@ func main() {
 				err       error
 			)
 
-			client, err := getAPIClient(wrappedSecretId.VaultAddr, wrappedSecretId.VaultCAs)
-
-			if err != nil {
-				logger.Fatalf("Error creating vault client: %s", err)
-			}
-
-			sID, secretIDAccessor, err := unwrapSecretID(client, wrappedSecretId.SecretID)
-
-			if retrieveToken {
-				authToken, err := login(client, roleID, sID)
+			if unwrapSecret {
+				client, err := getAPIClient(wrappedSecretId.VaultAddr, wrappedSecretId.VaultCAs)
 
 				if err != nil {
-					logger.Fatalf("Could not login to get auth token: %s", err)
+					logger.Fatalf("Error creating vault client: %s", err)
 				}
 
-				authToken.VaultAddr = wrappedSecretId.VaultAddr
+				sID, secretIDAccessor, err := unwrapSecretID(client, wrappedSecretId.SecretID)
 
-				response = authToken
+				if err != nil {
+					logger.Fatalf("Could not unwrap secret: %s", err)
+				}
+
+				if retrieveToken {
+					authToken, err := login(client, roleID, sID)
+
+					if err != nil {
+						logger.Fatalf("Could not login to get auth token: %s", err)
+					}
+
+					authToken.VaultAddr = wrappedSecretId.VaultAddr
+
+					response = authToken
+
+				} else {
+					response = secretID{
+						RoleID:    roleID,
+						SecretID:  sID,
+						Accessor:  secretIDAccessor,
+						VaultAddr: wrappedSecretId.VaultAddr,
+					}
+				}
 
 			} else {
-				response = secretID{
-					RoleID:    roleID,
-					SecretID:  sID,
-					Accessor:  secretIDAccessor,
+				response = wrappedSecretID{
+					RoleID: roleID,
+					WrappedSecretID: wrappedSecretId.SecretID,
 					VaultAddr: wrappedSecretId.VaultAddr,
+					TTL: wrappedSecretId.TTL,
 				}
 			}
 
@@ -157,21 +191,30 @@ func main() {
 				logger.Fatalf("Could not marshal auth token to JSON: %s", err)
 			}
 
-			if retrieveToken {
-				tokenPath = filepath.Join(credentialsPath, "vault-token")
+			if unwrapSecret {
+				if retrieveToken {
+					tokenPath = filepath.Join(credentialsPath, "vault-token")
+				} else {
+					tokenPath = filepath.Join(credentialsPath, "vault-secret-id")
+				}
 			} else {
-				tokenPath = filepath.Join(credentialsPath, "vault-secret-id")
+				tokenPath = filepath.Join(credentialsPath, "vault-wrapped-secret-id")
 			}
 
 			err = ioutil.WriteFile(tokenPath, b, 0444)
 
 			if err != nil {
-
-				if retrieveToken {
-					logger.Fatalf("Could not write auth token to path (%s): %s", tokenPath, err)
+				tokenType := ""
+				if unwrapSecret {
+					if retrieveToken {
+						tokenType = "auth token"
+					} else {
+						tokenType = "secret_id"
+					}
 				} else {
-					logger.Fatalf("Could not write secret_id to path (%s): %s", tokenPath, err)
+					tokenType = "wrapped secret_id"
 				}
+				logger.Fatalf("Could not write %s to path (%s): %s", tokenType, tokenPath, err)
 			}
 
 			if len(wrappedSecretId.VaultCAs) > 0 {
