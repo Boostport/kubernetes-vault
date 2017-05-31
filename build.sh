@@ -1,10 +1,10 @@
 #!/bin/sh
 
 # Install tools
-apk --update add curl ca-certificates gcc git musl-dev && update-ca-certificates
+apk --update add gcc git musl-dev
 
 # Install glide
-curl https://glide.sh/get | sh
+go get -u github.com/Masterminds/glide
 
 # Install dependencies
 glide install --strip-vendor
