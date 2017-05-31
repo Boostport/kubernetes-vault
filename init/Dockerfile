@@ -7,7 +7,7 @@ COPY . .
 RUN apk --update add gcc git musl-dev \
  && go get -u github.com/Masterminds/glide \
  && glide install --strip-vendor \
- && cd controller \
+ && cd init \
  && go build -o kubernetes-vault-init
 
 FROM alpine:3.5
