@@ -233,9 +233,12 @@ We use glide as our dependency manager. To work on the project, install glide, t
 
 Docker is used to build the binaries, so you need to have docker installed.
 
-The project also comes with a few scripts to simplify building binaries and docker containers and pushing docker containers.
-Simply run `build.sh` to build the binaries. To build and push images, simplify run `build-images.sh`.
+The project also comes with a few scripts to simplify building binaries and docker images for testing.
+Simply run `build.sh` to build the binaries. To build the docker images, run `build-dev-images.sh`.
 Running `build-images.sh` also automatically runs `build.sh`.
+
+The `Dockerfile.dev` files are used to build development/testing images, while the `Dockerfile` files are used to build
+production images.
 
 ## License
 This project is licensed under the Apache 2 License.
