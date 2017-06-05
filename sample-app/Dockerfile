@@ -10,7 +10,7 @@ RUN apk --update add gcc git musl-dev \
  && cd sample-app \
  && go build -o sample-app
 
-FROM alpine:3.5
+FROM alpine:latest
 LABEL maintainer Francis Chuang <francis.chuang@boostport.com>
 
 COPY --from=builder /go/src/github.com/Boostport/kubernetes-vault/sample-app/sample-app /sample-app

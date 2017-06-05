@@ -10,7 +10,7 @@ RUN apk --update add gcc git musl-dev \
  && cd controller \
  && go build -o kubernetes-vault
 
-FROM alpine:3.5
+FROM alpine:latest
 LABEL maintainer Francis Chuang <francis.chuang@boostport.com>
 
 RUN mkdir -p /kubernetes-vault

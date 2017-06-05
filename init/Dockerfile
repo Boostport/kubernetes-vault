@@ -10,7 +10,7 @@ RUN apk --update add gcc git musl-dev \
  && cd init \
  && go build -o kubernetes-vault-init
 
-FROM alpine:3.5
+FROM alpine:latest
 LABEL maintainer Francis Chuang <francis.chuang@boostport.com>
 
 COPY --from=builder /go/src/github.com/Boostport/kubernetes-vault/init/kubernetes-vault-init /kubernetes-vault-init
