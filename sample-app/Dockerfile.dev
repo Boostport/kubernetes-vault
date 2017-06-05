@@ -1,4 +1,4 @@
-FROM alpine:3.5
+FROM alpine:latest
 LABEL maintainer Francis Chuang <francis.chuang@boostport.com>
 
 ADD sample-app /sample-app
