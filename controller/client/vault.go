@@ -288,7 +288,6 @@ func (v *Vault) validateRole(role string) error {
 	// Read and parse the fields
 	var data struct {
 		ExplicitMaxTtl int `mapstructure:"explicit_max_ttl"`
-		Orphan         bool
 		Period         int
 		Renewable      bool
 	}
@@ -299,10 +298,6 @@ func (v *Vault) validateRole(role string) error {
 
 	// Validate the role is acceptable
 	var mErr multierror.Error
-
-	if data.Orphan {
-		multierror.Append(&mErr, errors.New("Role must not allow orphans"))
-	}
 
 	if !data.Renewable {
 		multierror.Append(&mErr, errors.New("Role must allow tokens to be renewed"))
