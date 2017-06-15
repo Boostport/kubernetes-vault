@@ -25,7 +25,7 @@ spec:
         app: vault
     spec:
       containers:
-      - image: vault:0.7.2
+      - image: vault
         name: vault
         ports:
         - containerPort: 8200

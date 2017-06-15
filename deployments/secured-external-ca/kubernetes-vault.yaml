@@ -147,7 +147,7 @@ spec:
     spec:
       containers:
       - name: kubernetes-vault
-        image: boostport/kubernetes-vault:0.4.5
+        image: boostport/kubernetes-vault
         imagePullPolicy: Always
         env:
         - name: KUBERNETES_NAMESPACE
