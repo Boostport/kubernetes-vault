@@ -223,6 +223,14 @@ Kubernetes-Vault uses [Prometheus](https://prometheus.io) for metrics reporting.
 
 For more information about metrics, read the guide on [metrics](metrics.md).
 
+## Sidekick container
+[UKHomeOffice/vault-sidekick](https://github.com/UKHomeOffice/vault-sidekick) is a sidekick container that runs in your pods
+to retrieve and renew credentials from Vault. The container has support for reading the token and other associated information
+from the token information that is created by the Kubernetes-Vault container. 
+
+In order to use `vault-sidekick` with Kubernetes-Vault, set the `AUTH_FILE` environment variable to the path of the token JSON
+file written by the init container and the `AUTH_FORMAT` environment variable to `kubernetes-vault`.
+
 ## Troubleshooting
 See the [troubleshooting guide](troubleshooting.md).
 
