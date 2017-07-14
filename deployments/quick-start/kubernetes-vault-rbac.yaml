@@ -1,0 +1,114 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kube-vault
+  namespace: default
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: kube-vault
+rules:
+- apiGroups: [""]
+  resources:
+  - pods
+  verbs: ["watch"]
+- apiGroups: [""]
+  resources:
+  - endpoints
+  verbs: ["list"]
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: kube-vault
+  namespace: default
+subjects:
+- kind: ServiceAccount
+  name: kube-vault
+  namespace: default
+roleRef:
+  kind: ClusterRole
+  name: kube-vault
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vault
+  namespace: default
+  labels:
+    app: vault
+spec:
+  ports:
+    - name: vault
+      port: 8200
+  selector:
+    app: vault
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kubernetes-vault
+  labels:
+    run: kubernetes-vault
+spec:
+  clusterIP: None
+  selector:
+    run: kubernetes-vault
+  # Kubernetes-Vault does not need to expose any ports through a headless service.
+  # However, there's a Kubernetes bug where the pods won't be registered in the API,
+  # so we need to use this hack. See kubernetes/kubernetes#32796
+  ports:
+    - name: port
+      port: 80
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kubernetes-vault
+data:
+  kubernetes-vault.yml: |-
+    vault:
+      addr: http://vault:8200
+      token: 91526d9b-4850-3405-02a8-aa29e74e17a5
+
+    kubernetes:
+      watchNamespace: ${KUBERNETES_NAMESPACE}
+      serviceNamespace: ${KUBERNETES_NAMESPACE}
+      service: kubernetes-vault
+
+    prometheus:
+      tls:
+        vaultCertBackend: intermediate-ca
+        vaultCertRole: kubernetes-vault
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: kubernetes-vault
+  namespace: default
+spec:
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        run: kubernetes-vault
+    spec:
+      serviceAccountName: kube-vault
+      containers:
+      - name: kubernetes-vault
+        image: boostport/kubernetes-vault
+        env:
+        - name: KUBERNETES_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        volumeMounts:
+        - name: config-volume
+          mountPath: /kubernetes-vault
+      volumes:
+        - name: config-volume
+          configMap:
+            name: kubernetes-vault

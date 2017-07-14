@@ -8,7 +8,7 @@
 Inspect the deployment file `deployments/quick-start/vault.yaml`. The deployment starts Vault in development mode with the root token
 set to `vault-root-token`. It is also started using `http`. In production, you should run Vault over `https`.
 
-Deploy: `kubectl apply -f deployments/quick-start/vault.yaml`
+Deploy:  ```kubectl apply -f deployments/quick-start/vault.yaml```
 
 ## 2. Setup Vault
 ### 2.1 Port forward vault
@@ -216,7 +216,15 @@ data:
 ...
 ```
 
-Deploy: `kubectl apply -f deployments/quick-start/kubernetes-vault.yaml`
+- For kubernetes versions >= 1.6 deploy: 
+
+  ```kubectl apply -f deployments/quick-start/kubernetes-vault-rbac.yaml```
+
+  Special care is required here when you are deploying to a different namespace. Please modify the file directly
+  and adjust the namespace values to that where you will be deploying.
+- For kubernetes versions <= 1.5 deploy: 
+
+  ```kubectl apply -f deployments/quick-start/kubernetes-vault.yaml```
 
 ### 3.2 Confirm Kubernetes-Vault deployed successfully
 Use the Kubernetes dashboard to view the status of the deployment and make sure all pods are healthy.
