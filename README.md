@@ -237,13 +237,14 @@ See the [troubleshooting guide](troubleshooting.md).
 ## Development
 PRs are highly welcomed!
 
-We use glide as our dependency manager. To work on the project, install glide, then run `glide install --strip-vendor`.
+We use [dep](https://github.com/golang/dep) as our dependency manager. To work on the project, install dep, then run `dep ensure`.
 
 Docker is used to build the binaries, so you need to have docker installed.
 
-The project also comes with a few scripts to simplify building binaries and docker images for testing.
-Simply run `build.sh` to build the binaries. To build the docker images, run `build-dev-images.sh`.
-Running `build-images.sh` also automatically runs `build.sh`.
+Production images can be built using multi-stage docker builds by building the respective dockerfile in each binary's folder.
+
+For development, simply run `build.sh` to build the binaries. To build the development docker images, run `build-dev-images.sh`.
+Running `build-dev-images.sh` also automatically runs `build.sh`.
 
 The `Dockerfile.dev` files are used to build development/testing images, while the `Dockerfile` files are used to build
 production images.
