@@ -4,10 +4,10 @@
 apk --update add gcc git musl-dev
 
 # Install glide
-go get -u github.com/Masterminds/glide
+go get -u github.com/golang/dep/cmd/dep
 
 # Install dependencies
-glide install --strip-vendor
+dep ensure
 
 # Build the service
 cd controller && go build -a -o kubernetes-vault
