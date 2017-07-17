@@ -17,6 +17,9 @@ The Kubernetes-Vault project allows pods to automatically receive a Vault token 
 * The Kubernetes-Vault controller uses the Kubernetes service account to watch for new pods. This service account must have the appropriate permissions.
 * Your app should use a [Vault client](https://www.vaultproject.io/api/libraries.html) to renew the token and any secrets you request from Vault.
 * You should configure Vault to use HTTPS, so that the authentication token and any other secrets cannot be sniffed.
+* If using RBAC, the Kubernetes-Vault controller needs the following permissions
+    * `get` it's endpoint (headless service)
+    * `list` and `watch` `pods` in all namespaces.
 
 ## Get started
 To run Kubernetes-Vault on your cluster, follow the [quick start guide](deployments/quick-start/README.md).
