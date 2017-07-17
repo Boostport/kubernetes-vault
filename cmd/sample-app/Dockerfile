@@ -5,8 +5,8 @@ WORKDIR $GOPATH/src/github.com/Boostport/kubernetes-vault
 COPY . .
 
 RUN apk --update add gcc git musl-dev \
- && go get -u github.com/Masterminds/glide \
- && glide install --strip-vendor \
+ && go get -u github.com/golang/dep \
+ && dep ensure \
  && go build -o sample-app ./cmd/sample-app
 
 FROM alpine:latest
