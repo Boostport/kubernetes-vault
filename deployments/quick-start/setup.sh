@@ -110,27 +110,42 @@ vault write auth/token/roles/kubernetes-vault allowed_policies=kubernetes-vault 
 #vault token-create -role=kubernetes-vault
 CLIENTTOKEN=$(http POST http://127.0.0.1:8200/v1/auth/token/create/kubernetes-vault \
     X-Vault-Token:vault-root-token | jq -r .auth.client_token)
-sed -i -e "s/token\: .*$/token: $CLIENTTOKEN/g" kubernetes-vault.yaml
+
+KUBERNETES_VAULT_DEPLOYMENT="kubernetes-vault.yaml"
+
+if [ "$KUBE_1_5" = true ]; then
+    KUBERNETES_VAULT_DEPLOYMENT="kubernetes-vault-kube-1.5.yaml"
+fi
+
+sed -i -e "s/token\: .*$/token: $CLIENTTOKEN/g" $KUBERNETES_VAULT_DEPLOYMENT
 
 #Get the AppID: 
 #vault read auth/approle/role/sample-app/role-id
 ROLEID=$(http GET http://127.0.0.1:8200/v1/auth/approle/role/sample-app/role-id \
     X-Vault-Token:vault-root-token | jq -r .data.role_id)
-sed -i -e "s/value\"\: \".*$/value\": \"$ROLEID\"/g" sample-app.yaml
+
+SAMPLE_APP_DEPLOYMENT="sample-app.yaml"
+
+if [ "$KUBE_1_5" = true ]; then
+    SAMPLE_APP_DEPLOYMENT="sample-app-kube-1.5.yaml"
+    sed -i -e "s/value\"\: \".*$/value\": \"$ROLEID\"/g" $SAMPLE_APP_DEPLOYMENT
+else
+    sed -i -e "s/value\: .*$/value: $ROLEID/g" $SAMPLE_APP_DEPLOYMENT
+fi
 
 #3. Deploy Kubernetes-Vault
 
 #3.1 Prepare the manifest and deploy
 
 #Check deployments/quick-start/kubernetes-vault.yaml and update the Vault token in the Kubernetes deployment.
-kubectl apply -f kubernetes-vault.yaml
+kubectl apply -f $KUBERNETES_VAULT_DEPLOYMENT
 
 #4. Deploy a sample app
 
 #4.1 Prepare the manifest and deploy
 
 #Inspect deployments/quick-start/sample-app.yaml and update the role id in the deployment.
-kubectl apply -f sample-app.yaml
+kubectl apply -f $SAMPLE_APP_DEPLOYMENT
 
 #5. Confirm that each pod of the sample app received a Vault token
 echo View the logs using the Kubernetes dashboard or kubectl logs mypod and confirm that each pod receive a token. \

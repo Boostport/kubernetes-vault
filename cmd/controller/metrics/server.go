@@ -3,9 +3,10 @@ package metrics
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http"
 	"sync"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type Server struct {

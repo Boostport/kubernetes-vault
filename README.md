@@ -19,7 +19,7 @@ The Kubernetes-Vault project allows pods to automatically receive a Vault token 
 * You should configure Vault to use HTTPS, so that the authentication token and any other secrets cannot be sniffed.
 
 ## Get started
-To run Kubernetes-Vault on your cluster, follow the [quick start guide](quick-start.md).
+To run Kubernetes-Vault on your cluster, follow the [quick start guide](deployments/quick-start/README.md).
 
 ## Best practices
 See our list of [best practices](best-practices.md).
@@ -237,13 +237,14 @@ See the [troubleshooting guide](troubleshooting.md).
 ## Development
 PRs are highly welcomed!
 
-We use glide as our dependency manager. To work on the project, install glide, then run `glide install --strip-vendor`.
+We use [dep](https://github.com/golang/dep) as our dependency manager. To work on the project, install dep, then run `dep ensure`.
 
 Docker is used to build the binaries, so you need to have docker installed.
 
-The project also comes with a few scripts to simplify building binaries and docker images for testing.
-Simply run `build.sh` to build the binaries. To build the docker images, run `build-dev-images.sh`.
-Running `build-images.sh` also automatically runs `build.sh`.
+Production images can be built using multi-stage docker builds by building the respective dockerfile in each binary's folder.
+
+For development, simply run `build.sh` to build the binaries. To build the development docker images, run `build-dev-images.sh`.
+Running `build-dev-images.sh` also automatically runs `build.sh`.
 
 The `Dockerfile.dev` files are used to build development/testing images, while the `Dockerfile` files are used to build
 production images.

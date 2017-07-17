@@ -1,0 +1,42 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: sample-app
+spec:
+  replicas: 5
+  template:
+    metadata:
+      labels:
+        app: sample-app
+      annotations:
+        pod.boostport.com/vault-approle: sample-app
+        pod.boostport.com/vault-init-container: get-vault-token
+        pod.beta.kubernetes.io/init-containers: '[
+          {
+            "name": "get-vault-token",
+            "image": "boostport/kubernetes-vault-init",
+            "imagePullPolicy": "Always",
+            "env": [
+                {
+                    "name": "VAULT_ROLE_ID",
+                    "value": "313b0821-4ff6-1df8-54dd-c3eea5d3b8b1"
+                }
+            ],
+            "volumeMounts": [
+                {
+                    "name": "vault-token",
+                    "mountPath": "/var/run/secrets/boostport.com"
+                }
+            ]
+          }
+        ]'
+    spec:
+      containers:
+      - name: sample-app
+        image: boostport/kubernetes-vault-sample-app
+        volumeMounts:
+        - name: vault-token
+          mountPath: /var/run/secrets/boostport.com
+      volumes:
+      - name: vault-token
+        emptyDir: {}

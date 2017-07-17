@@ -1,10 +1,9 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"regexp"
-
-	"context"
 	"time"
 
 	"github.com/Boostport/kubernetes-vault/common"

@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Boostport/kubernetes-vault/controller/client"
+	"github.com/Boostport/kubernetes-vault/cmd/controller/client"
 	"github.com/Sirupsen/logrus"
 	"github.com/cenkalti/backoff"
 	"github.com/hashicorp/go-cleanhttp"

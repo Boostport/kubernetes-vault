@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"crypto/tls"
@@ -11,10 +11,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Boostport/kubernetes-vault/cmd/controller/client"
+	"github.com/Boostport/kubernetes-vault/cmd/controller/cluster"
+	"github.com/Boostport/kubernetes-vault/cmd/controller/metrics"
 	"github.com/Boostport/kubernetes-vault/common"
-	"github.com/Boostport/kubernetes-vault/controller/client"
-	"github.com/Boostport/kubernetes-vault/controller/cluster"
-	"github.com/Boostport/kubernetes-vault/controller/metrics"
 	"github.com/Sirupsen/logrus"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
@@ -33,7 +33,7 @@ type config struct {
 	Vault struct {
 		Addr  string `mapstructure:"addr"`
 		Token string `mapstructure:"token"`
-		TLS   struct {
+		TLS struct {
 			VaultCABackends []string `mapstructure:"vaultCABackends"`
 			CACert          string   `mapstructure:"caCert"`
 		} `mapstructure:"tls"`
