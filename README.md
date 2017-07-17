@@ -19,7 +19,7 @@ The Kubernetes-Vault project allows pods to automatically receive a Vault token 
 * You should configure Vault to use HTTPS, so that the authentication token and any other secrets cannot be sniffed.
 
 ## Get started
-To run Kubernetes-Vault on your cluster, follow the [quick start guide](quick-start.md).
+To run Kubernetes-Vault on your cluster, follow the [quick start guide](deployments/quick-start/README.md).
 
 ## Best practices
 See our list of [best practices](best-practices.md).

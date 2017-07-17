@@ -3,6 +3,15 @@
 ## Prerequisites
 * You have a working Kubernetes cluster and it is at least v1.4.0.
 * You have a basic understanding of how Kubernetes and Vault works.
+* If you are using Kubernetes >= 1.6, you have RBAC enabled in your cluster.
+
+## Setup scripts
+To automate the steps below, you can use the provided `setup.sh` and `teardown.sh` scripts.
+If you are using Kubernetes 1.5 and below, set the `KUBE_1_5` environment variable to `true`:
+
+```
+$ export KUBE_1_5=true
+```
 
 ## 1. Deploy Vault
 Inspect the deployment file `deployments/quick-start/vault.yaml`. The deployment starts Vault in development mode with the root token
@@ -198,6 +207,9 @@ role_id zzzzzzzzz-7777-8888-9999-tttttttttttt
 
 ## 3. Deploy Kubernetes-Vault
 ### 3.1 Prepare the manifest and deploy
+
+If Kubernetes <= 1.5, use `deployments/quick-start/kubernetes-vault-kube-1.5.yaml`, otherwise use `deployments/quick-start/kubernetes-vault.yaml`.
+
 Check `deployments/quick-start/kubernetes-vault.yaml` and update the Vault token (not the role id) in the Kubernetes deployment.
 
 For example:
@@ -216,21 +228,19 @@ data:
 ...
 ```
 
-- For kubernetes versions >= 1.6 deploy: 
+If you are using Kubernetes versions >= 1.6, make sure you modify the namespaces in the RBAC objects if you are not using the
+`default` namespace.
 
-  ```kubectl apply -f deployments/quick-start/kubernetes-vault-rbac.yaml```
-
-  Special care is required here when you are deploying to a different namespace. Please modify the file directly
-  and adjust the namespace values to that where you will be deploying.
-- For kubernetes versions <= 1.5 deploy: 
-
-  ```kubectl apply -f deployments/quick-start/kubernetes-vault.yaml```
+Deploy: `kubectl apply -f deployments/quick-start/kubernetes-vault.yaml`
 
 ### 3.2 Confirm Kubernetes-Vault deployed successfully
 Use the Kubernetes dashboard to view the status of the deployment and make sure all pods are healthy.
 
 ## 4. Deploy a sample app
 ### 4.1 Prepare the manifest and deploy
+
+If Kubernetes <= 1.5, use `deployments/quick-start/sample-app-kube-1.5.yaml`, otherwise use `deployments/quick-start/sample-app.yaml`.
+
 Inspect `deployments/quick-start/sample-app.yaml` and update the role id in the deployment:
 
 ```
@@ -287,4 +297,4 @@ In this guide, we did not set up TLS client authentication for the metrics endpo
 or `caCert` in the `prometheus.tls` configuration.
 
 ## Best Practices
-See our documented [best practices](best-practices.md).
+See our documented [best practices](../../best-practices.md).

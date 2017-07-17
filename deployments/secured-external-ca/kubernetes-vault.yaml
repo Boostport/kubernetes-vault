@@ -1,3 +1,38 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kubernetes-vault
+  namespace: default
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: kubernetes-vault
+rules:
+- apiGroups: [""]
+  resources:
+  - pods
+  verbs: ["list","watch"]
+- apiGroups: [""]
+  resources:
+  - endpoints
+  verbs: ["get"]
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: kubernetes-vault
+  namespace: default
+subjects:
+- kind: ServiceAccount
+  name: kubernetes-vault
+  namespace: default
+roleRef:
+  kind: ClusterRole
+  name: kubernetes-vault
+  apiGroup: rbac.authorization.k8s.io
+---
 apiVersion: v1
 kind: Service
 metadata:
@@ -8,12 +43,6 @@ spec:
   clusterIP: None
   selector:
     run: kubernetes-vault
-  # Kubernetes-Vault does not need to expose any ports through a headless service.
-  # However, there's a Kubernetes bug where the pods won't be registered in the API,
-  # so we need to use this hack. See kubernetes/kubernetes#32796
-  ports:
-    - name: port
-      port: 80
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -138,6 +167,7 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: kubernetes-vault
+  namespace: default
 spec:
   replicas: 3
   template:
@@ -145,6 +175,7 @@ spec:
       labels:
         run: kubernetes-vault
     spec:
+      serviceAccountName: kubernetes-vault
       containers:
       - name: kubernetes-vault
         image: boostport/kubernetes-vault
