@@ -5,7 +5,7 @@ WORKDIR $GOPATH/src/github.com/Boostport/kubernetes-vault
 COPY . .
 
 RUN apk --update add gcc git musl-dev \
- && go get -u github.com/golang/dep \
+ && go get -u github.com/golang/dep/cmd/dep \
  && dep ensure \
  && go build -o sample-app ./cmd/sample-app
 
