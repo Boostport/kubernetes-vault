@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"os"
@@ -37,10 +37,10 @@ func expandEnvironmentvariablesRecursive(copy, original reflect.Value) {
 		// Unwrap the newly created pointer
 		expandEnvironmentvariablesRecursive(copy.Elem(), originalValue)
 
-	// If it is an interface (which is very similar to a pointer), do basically the
-	// same as for the pointer. Though a pointer is not the same as an interface so
-	// note that we have to call Elem() after creating a new object because otherwise
-	// we would end up with an actual pointer
+		// If it is an interface (which is very similar to a pointer), do basically the
+		// same as for the pointer. Though a pointer is not the same as an interface so
+		// note that we have to call Elem() after creating a new object because otherwise
+		// we would end up with an actual pointer
 	case reflect.Interface:
 		// Get rid of the wrapping interface
 		originalValue := original.Elem()
@@ -50,20 +50,20 @@ func expandEnvironmentvariablesRecursive(copy, original reflect.Value) {
 		expandEnvironmentvariablesRecursive(copyValue, originalValue)
 		copy.Set(copyValue)
 
-	// If it is a struct we translate each field
+		// If it is a struct we translate each field
 	case reflect.Struct:
 		for i := 0; i < original.NumField(); i += 1 {
 			expandEnvironmentvariablesRecursive(copy.Field(i), original.Field(i))
 		}
 
-	// If it is a slice we create a new slice and translate each element
+		// If it is a slice we create a new slice and translate each element
 	case reflect.Slice:
 		copy.Set(reflect.MakeSlice(original.Type(), original.Len(), original.Cap()))
 		for i := 0; i < original.Len(); i += 1 {
 			expandEnvironmentvariablesRecursive(copy.Index(i), original.Index(i))
 		}
 
-	// If it is a map we create a new map and translate each value
+		// If it is a map we create a new map and translate each value
 	case reflect.Map:
 		copy.Set(reflect.MakeMap(original.Type()))
 		for _, key := range original.MapKeys() {
@@ -74,14 +74,14 @@ func expandEnvironmentvariablesRecursive(copy, original reflect.Value) {
 			copy.SetMapIndex(key, copyValue)
 		}
 
-	// Otherwise we cannot traverse anywhere so this finishes the the recursion
+		// Otherwise we cannot traverse anywhere so this finishes the the recursion
 
-	// If it is a string translate it (yay finally we're doing what we came for)
+		// If it is a string translate it (yay finally we're doing what we came for)
 	case reflect.String:
 		translatedString := os.ExpandEnv(original.Interface().(string))
 		copy.SetString(translatedString)
 
-	// And everything else will simply be taken from the original
+		// And everything else will simply be taken from the original
 	default:
 		copy.Set(original)
 	}

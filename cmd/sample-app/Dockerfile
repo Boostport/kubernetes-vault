@@ -7,12 +7,11 @@ COPY . .
 RUN apk --update add gcc git musl-dev \
  && go get -u github.com/Masterminds/glide \
  && glide install --strip-vendor \
- && cd init \
- && go build -o kubernetes-vault-init
+ && go build -o sample-app ./cmd/sample-app
 
 FROM alpine:latest
 LABEL maintainer Francis Chuang <francis.chuang@boostport.com>
 
-COPY --from=builder /go/src/github.com/Boostport/kubernetes-vault/init/kubernetes-vault-init /kubernetes-vault-init
+COPY --from=builder /go/src/github.com/Boostport/kubernetes-vault/sample-app /sample-app
 
-ENTRYPOINT ["/kubernetes-vault-init"]
+ENTRYPOINT ["/sample-app"]

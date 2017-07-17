@@ -94,7 +94,6 @@ func main() {
 		retrieveToken = false
 	}
 
-
 	unwrapSecret := true
 
 	unwrapSecretId := os.Getenv("UNWRAP_SECRET")
@@ -178,10 +177,10 @@ func main() {
 
 			} else {
 				response = wrappedSecretID{
-					RoleID: roleID,
+					RoleID:          roleID,
 					WrappedSecretID: wrappedSecretId.SecretID,
-					VaultAddr: wrappedSecretId.VaultAddr,
-					TTL: wrappedSecretId.TTL,
+					VaultAddr:       wrappedSecretId.VaultAddr,
+					TTL:             wrappedSecretId.TTL,
 				}
 			}
 
@@ -315,6 +314,10 @@ func unwrapSecretID(client *api.Client, secretID string) (string, string, error)
 
 	if err != nil {
 		return "", "", errors.Wrap(err, "error unwrapping secret_id")
+	}
+
+	if secret == nil {
+		return "", "", errors.New("unwrapped secret is empty. check whether the vault address is accessible from this pod and that the secret_id exists.")
 	}
 
 	secretID, ok := secret.Data["secret_id"].(string)
