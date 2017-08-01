@@ -30,14 +30,14 @@ Substitute the appropriate pod name for Vault: `kubectl port-forward vault-36116
 
 Type in the root token (`vault-root-token`) to authenticate: `vault auth`
 
-### 2.2 Set up the Root Certificate Authority
+### 2.3 Set up the Root Certificate Authority
 Create a Root CA that expires in 10 years: `vault mount -path=root-ca -max-lease-ttl=87600h pki`
 
 Generate the root certificate: `vault write root-ca/root/generate/internal common_name="Root CA" ttl=87600h exclude_cn_from_sans=true`
 
 Set up the URLs: `vault write root-ca/config/urls issuing_certificates="http://vault:8200/v1/root-ca/ca" crl_distribution_points="http://vault:8200/v1/root-ca/crl"`
 
-### 2.3 Create the Intermediate Certificate Authority
+### 2.4 Create the Intermediate Certificate Authority
 Create the Intermediate CA that expires in 5 years: `vault mount -path=intermediate-ca -max-lease-ttl=43800h pki`
 
 Generate a Certificate Signing Request: `vault write intermediate-ca/intermediate/generate/internal common_name="Intermediate CA" ttl=43800h exclude_cn_from_sans=true`
@@ -169,19 +169,19 @@ Set up URLs: `vault write intermediate-ca/config/urls issuing_certificates="http
 
 Create a role to allow Kubernetes-Vault to generate certificates: `vault write intermediate-ca/roles/kubernetes-vault allow_any_name=true max_ttl="24h"`
 
-### 2.4 Enable the AppRole backend
+### 2.5 Enable the AppRole backend
 Enable backend: `vault auth-enable approle`
 
 Set up an app-role for `sample-app` that generates a periodic 6 hour token: `vault write auth/approle/role/sample-app secret_id_ttl=90s period=6h secret_id_num_uses=1`
 
-### 2.5 Create token role for Kubernetes-Vault
+### 2.6 Create token role for Kubernetes-Vault
 Inspect the policy file `deployments/quick-start/policy.hcl`
 
 Send the policy to Vault: `vault policy-write kubernetes-vault deployments/quick-start/policy.hcl`
 
 Create a token role for Kubernetes-Vault that generates a 6 hour periodic token: `vault write auth/token/roles/kubernetes-vault allowed_policies=kubernetes-vault period=6h`
 
-### 2.6 Generate the token for Kubernetes-Vault and AppID
+### 2.7 Generate the token for Kubernetes-Vault and AppID
 Generate the token: `vault token-create -role=kubernetes-vault`. And make a note of the token output. In the example below it would be '00000000-1111-2222-3333-444444444444'
 
 ```
