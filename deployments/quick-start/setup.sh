@@ -9,12 +9,13 @@ do
     fi
 done
 
+# 1. Deploy Vault
+
 # Inspect the deployment file deployments/quick-start/vault.yaml. The deployment starts Vault in development mode with \
 # the root token set to vault-root-token. It is also started using http. In production, you should run Vault over https.
 kubectl apply -f vault.yaml
 
-#2. Setup Vault
-# Wait 5 minutes for vault to be deployed.
+# Wait 10 seconds for vault to be deployed.
 maxWaitSecond=10
 vaultPod=$(kubectl get pods -l app=vault | grep ^vault* |awk '{print $1}')
 while [ $maxWaitSecond -gt 0 ] && [ -z "$vaultPod" ]
@@ -30,7 +31,7 @@ then
 fi
 
 echo "Vault pod name: $vaultPod"
-# Wait 10 seconds for vault to be running.
+# Wait 5 minutes for vault to be running.
 maxWaitSecond=300
 vaultStatus=$(kubectl get pod "$vaultPod" -o=jsonpath='{.status.phase}')
 while [ $maxWaitSecond -gt 0 ] && [ "$vaultStatus" != "Running" ]
@@ -46,14 +47,16 @@ then
     exit 1
 fi
 
+# 2. Setup Vault
+
 # 2.1 Port forward vault
 nohup kubectl port-forward $vaultPod 8200 &
 
-# Set environment variables and authenticate
+# 2.2 Set environment variables and authenticate
 export VAULT_ADDR=http://127.0.0.1:8200
 vault auth vault-root-token
 
-# Set up the Root Certificate Authority
+# 2.3 Set up the Root Certificate Authority
 # Create a Root CA that expires in 10 years: 
 vault mount -path=root-ca -max-lease-ttl=87600h pki
 
@@ -64,7 +67,7 @@ vault write root-ca/root/generate/internal common_name="Root CA" ttl=87600h excl
 vault write root-ca/config/urls issuing_certificates="http://vault:8200/v1/root-ca/ca" \
     crl_distribution_points="http://vault:8200/v1/root-ca/crl"
 
-# 2.3 Create the Intermediate Certificate Authority
+# 2.4 Create the Intermediate Certificate Authority
 # Create the Intermediate CA that expires in 5 years: 
 vault mount -path=intermediate-ca -max-lease-ttl=43800h pki
 
@@ -86,7 +89,7 @@ vault write intermediate-ca/config/urls issuing_certificates="http://vault:8200/
 #Create a role to allow Kubernetes-Vault to generate certificates: 
 vault write intermediate-ca/roles/kubernetes-vault allow_any_name=true max_ttl="24h"
 
-#2.4 Enable the AppRole backend
+# 2.5 Enable the AppRole backend
 
 #Enable backend: 
 vault auth-enable approle
@@ -94,7 +97,7 @@ vault auth-enable approle
 #Set up an app-role for sample-app that generates a periodic 6 hour token: 
 vault write auth/approle/role/sample-app secret_id_ttl=90s period=6h secret_id_num_uses=1
 
-#2.5 Create token role for Kubernetes-Vault
+# 2.6 Create token role for Kubernetes-Vault
 
 #Inspect the policy file deployments/quick-start/policy.hcl
 
@@ -104,7 +107,7 @@ vault policy-write kubernetes-vault policy.hcl
 #Create a token role for Kubernetes-Vault that generates a 6 hour periodic token: 
 vault write auth/token/roles/kubernetes-vault allowed_policies=kubernetes-vault period=6h
 
-#2.6 Generate the token for Kubernetes-Vault and AppID
+# 2.7 Generate the token for Kubernetes-Vault and AppID
 
 #Generate the token: 
 #vault token-create -role=kubernetes-vault
