@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/Boostport/kubernetes-vault/common"
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/cenkalti/backoff"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-multierror"

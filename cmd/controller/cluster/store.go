@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/Boostport/kubernetes-vault/cmd/controller/client"
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/cenkalti/backoff"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/raft"

@@ -19,7 +19,7 @@ import (
 	"time"
 
 	"github.com/Boostport/kubernetes-vault/common"
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/vault/api"
 	"github.com/pkg/errors"
