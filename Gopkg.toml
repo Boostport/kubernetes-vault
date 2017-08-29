@@ -22,12 +22,8 @@
 
 
 [[constraint]]
-  name = "github.com/Sirupsen/logrus"
-  version = "1.0.2"
-
-[[constraint]]
   name = "github.com/cenkalti/backoff"
-  version = "1.0.0"
+  version = "1.1.0"
 
 [[constraint]]
   name = "github.com/ericchiang/k8s"
@@ -54,6 +50,14 @@
   name = "github.com/hashicorp/raft-boltdb"
 
 [[constraint]]
+  name = "github.com/hashicorp/serf"
+  version = "0.8.1"
+
+[[constraint]]
+  name = "github.com/hashicorp/vault"
+  version = "0.8.1"
+
+[[constraint]]
   branch = "master"
   name = "github.com/mitchellh/mapstructure"
 
@@ -62,9 +66,21 @@
   version = "0.8.0"
 
 [[constraint]]
+  name = "github.com/prometheus/client_golang"
+  version = "0.8.0"
+
+[[constraint]]
+  name = "github.com/sirupsen/logrus"
+  version = "1.0.3"
+
+[[constraint]]
   branch = "master"
   name = "github.com/spf13/cobra"
 
 [[constraint]]
-  branch = "master"
   name = "github.com/spf13/viper"
+  version = "1.0.0"
+
+[[constraint]]
+  branch = "master"
+  name = "golang.org/x/net"

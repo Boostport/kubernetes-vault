@@ -15,9 +15,9 @@ import (
 	"github.com/Boostport/kubernetes-vault/cmd/controller/cluster"
 	"github.com/Boostport/kubernetes-vault/cmd/controller/metrics"
 	"github.com/Boostport/kubernetes-vault/common"
-	"github.com/Sirupsen/logrus"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

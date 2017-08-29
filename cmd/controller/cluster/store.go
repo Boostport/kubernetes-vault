@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/Boostport/kubernetes-vault/cmd/controller/client"
-	"github.com/Sirupsen/logrus"
 	"github.com/cenkalti/backoff"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/raft"
@@ -22,6 +21,7 @@ import (
 	"github.com/hashicorp/serf/serf"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"golang.org/x/net/context/ctxhttp"
 )

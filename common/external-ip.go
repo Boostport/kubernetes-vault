@@ -1,8 +1,9 @@
 package common
 
 import (
-	"github.com/pkg/errors"
 	"net"
+
+	"github.com/pkg/errors"
 )
 
 func ExternalIP() (net.IP, error) {

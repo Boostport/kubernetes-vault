@@ -1,4 +1,4 @@
-FROM golang:1.8-alpine as builder
+FROM golang:1.9-alpine as builder
 
 WORKDIR $GOPATH/src/github.com/Boostport/kubernetes-vault
 
