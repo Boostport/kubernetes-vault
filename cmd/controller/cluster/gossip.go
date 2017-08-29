@@ -1,11 +1,12 @@
 package cluster
 
 import (
+	"io"
+	"strconv"
+
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/serf/serf"
 	"github.com/pkg/errors"
-	"io"
-	"strconv"
 )
 
 type Gossip struct {

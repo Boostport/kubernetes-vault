@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/Boostport/kubernetes-vault/common"
-	"github.com/sirupsen/logrus"
 	"github.com/cenkalti/backoff"
 	"github.com/ericchiang/k8s"
 	"github.com/ericchiang/k8s/api/v1"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 const (
