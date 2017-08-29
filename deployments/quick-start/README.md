@@ -172,7 +172,7 @@ Create a role to allow Kubernetes-Vault to generate certificates: `vault write i
 ### 2.5 Enable the AppRole backend
 Enable backend: `vault auth-enable approle`
 
-Set up an app-role for `sample-app` that generates a periodic 6 hour token: `vault write auth/approle/role/sample-app secret_id_ttl=90s period=6h secret_id_num_uses=1`
+Set up an app-role for `sample-app` that generates a periodic 6 hour token: `vault write auth/approle/role/sample-app secret_id_ttl=90s period=6h secret_id_num_uses=1 policies=kubernetes-vault`
 
 ### 2.6 Create token role for Kubernetes-Vault
 Inspect the policy file `deployments/quick-start/policy.hcl`
