@@ -14,4 +14,4 @@ fi
 
 kubectl delete -f $SAMPLE_APP_DEPLOYMENT -f $KUBERNETES_VAULT_DEPLOYMENT -f vault.yaml
 ps -ef | grep "kubectl port-forward" | grep 8200 |awk '{print $2}'|xargs kill
-rm intermediate.csr signed.crt nohup.out
+rm nohup.out

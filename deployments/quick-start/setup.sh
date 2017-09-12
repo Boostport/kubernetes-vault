@@ -82,9 +82,11 @@ vault write -format=json intermediate-ca/intermediate/generate/internal \
 vault write -format=json root-ca/root/sign-intermediate \
     csr=@intermediate.csr use_csr_values=true exclude_cn_from_sans=true \
     | jq -r .data.certificate > signed.crt
+rm -f intermediate.csr
 
 # Send the stored certificate back to Vault:
 vault write intermediate-ca/intermediate/set-signed certificate=@signed.crt
+rm -f signed.crt
 
 # Set up URLs:
 vault write intermediate-ca/config/urls issuing_certificates="http://vault:8200/v1/intermediate-ca/ca" \
