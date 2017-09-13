@@ -13,5 +13,8 @@ if [ "$KUBE_1_5" = true ]; then
 fi
 
 kubectl delete -f $SAMPLE_APP_DEPLOYMENT -f $KUBERNETES_VAULT_DEPLOYMENT -f vault.yaml
-ps -ef | grep "kubectl port-forward" | grep 8200 |awk '{print $2}'|xargs kill
-rm intermediate.csr signed.crt nohup.out
+pid=$(ps -ef | grep "kubectl port-forward" | grep 8200 | awk '{print $2}')
+if [ ! -z $pid ]; then
+    kill $pid
+fi
+rm -f nohup.out

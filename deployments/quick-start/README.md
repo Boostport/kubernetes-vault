@@ -13,39 +13,70 @@ If you are using Kubernetes 1.5 and below, set the `KUBE_1_5` environment variab
 $ export KUBE_1_5=true
 ```
 
-## 1. Deploy Vault
+## 1. Vault
+
+### 1.1. Deploy
 Inspect the deployment file `deployments/quick-start/vault.yaml`. The deployment starts Vault in development mode with the root token
 set to `vault-root-token`. It is also started using `http`. In production, you should run Vault over `https`.
 
-Deploy:  ```kubectl apply -f deployments/quick-start/vault.yaml```
-
-## 2. Setup Vault
-### 2.1 Port forward vault
-Substitute the appropriate pod name for Vault: `kubectl port-forward vault-361162082-kuufw 8200`
-
-### 2.2 Set environment variables and authenticate
-`set VAULT_ADDR=http://127.0.0.1:8200` for Windows
-
-`export VAULT_ADDR=http://127.0.0.1:8200` for Linux
-
-Type in the root token (`vault-root-token`) to authenticate: `vault auth`
-
-### 2.3 Set up the Root Certificate Authority
-Create a Root CA that expires in 10 years: `vault mount -path=root-ca -max-lease-ttl=87600h pki`
-
-Generate the root certificate: `vault write root-ca/root/generate/internal common_name="Root CA" ttl=87600h exclude_cn_from_sans=true`
-
-Set up the URLs: `vault write root-ca/config/urls issuing_certificates="http://vault:8200/v1/root-ca/ca" crl_distribution_points="http://vault:8200/v1/root-ca/crl"`
-
-### 2.4 Create the Intermediate Certificate Authority
-Create the Intermediate CA that expires in 5 years: `vault mount -path=intermediate-ca -max-lease-ttl=43800h pki`
-
-Generate a Certificate Signing Request: `vault write intermediate-ca/intermediate/generate/internal common_name="Intermediate CA" ttl=43800h exclude_cn_from_sans=true`
-This produces the following output:
-
+Deploy:
 ```
-$ vault write intermediate-ca/intermediate/generate/internal common_name="Intermediate CA" ttl=43800h exclude_cn_from_sans=true
+kubectl apply -f deployments/quick-start/vault.yaml
+```
 
+### 1.2. Port forward
+Substitute the appropriate pod name for Vault:
+```
+kubectl port-forward vault-361162082-kuufw 8200
+```
+
+### 1.3. Set environment variables and authenticate
+For Windows
+```
+set VAULT_ADDR=http://127.0.0.1:8200
+```
+
+For Linux
+```
+export VAULT_ADDR=http://127.0.0.1:8200`
+```
+
+Type in the root token (`vault-root-token`) to authenticate:
+```
+vault auth
+```
+
+### 1.4. Set up the Root Certificate Authority
+Create a Root CA that expires in 10 years:
+```
+vault mount -path=root-ca -max-lease-ttl=87600h pki
+```
+
+Generate the root certificate:
+```
+vault write root-ca/root/generate/internal common_name="Root CA" ttl=87600h exclude_cn_from_sans=true
+```
+
+Set up the URLs:
+```
+vault write root-ca/config/urls issuing_certificates="http://vault:8200/v1/root-ca/ca" \
+    crl_distribution_points="http://vault:8200/v1/root-ca/crl"
+```
+
+### 1.5. Create the Intermediate Certificate Authority
+Create the Intermediate CA that expires in 5 years:
+```
+vault mount -path=intermediate-ca -max-lease-ttl=43800h pki
+```
+
+Generate a Certificate Signing Request:
+```
+vault write intermediate-ca/intermediate/generate/internal \
+    common_name="Intermediate CA" ttl=43800h exclude_cn_from_sans=true
+```
+
+This produces the following output:
+```
 Key     Value
 ---     -----
 csr     -----BEGIN CERTIFICATE REQUEST-----
@@ -66,7 +97,6 @@ N0wLLG1lbWlo6hM2BvhC+mQAOB8pkwDO4z0cJvLfrfIP5BI=
 ```
 
 Copy the CSR (starting from `-----BEGIN CERTIFICATE REQUEST-----` until the end of `-----END CERTIFICATE REQUEST-----` from the output above) to a file called `intermediate.csr`:
-
 ```
 -----BEGIN CERTIFICATE REQUEST-----
 MIICXzCCAUcCAQAwGjEYMBYGA1UEAxMPSW50ZXJtZWRpYXRlIENBMIIBIjANBgkq
@@ -85,11 +115,14 @@ N0wLLG1lbWlo6hM2BvhC+mQAOB8pkwDO4z0cJvLfrfIP5BI=
 -----END CERTIFICATE REQUEST-----
 ```
 
-Ask the Root to sign it: `vault write root-ca/root/sign-intermediate csr=@intermediate.csr use_csr_values=true exclude_cn_from_sans=true`
-This produces the following output:
-
+Ask the Root to sign it:
 ```
-$ vault write root-ca/root/sign-intermediate csr=@intermediate.csr use_csr_values=true exclude_cn_from_sans=true
+vault write root-ca/root/sign-intermediate \
+    csr=@intermediate.csr use_csr_values=true exclude_cn_from_sans=true
+```
+
+This produces the following output:
+```
 Key             Value
 ---             -----
 certificate     -----BEGIN CERTIFICATE-----
@@ -137,7 +170,6 @@ serial_number   7c:7b:3a:e2:26:98:8a:d2:3d:d2:b4:5d:3b:52:b0:43:d6:9e:c8:ec
 ```
 
 Copy the certificate (under the `certificate` key in the above output, from `-----BEGIN CERTIFICATE-----` until the end of `-----END CERTIFICATE-----`) to `signed.crt`:
-
 ```
 -----BEGIN CERTIFICATE-----
 MIIDjzCCAnegAwIBAgIUfHs64iaYitI90rRdO1KwQ9aeyOwwDQYJKoZIhvcNAQEL
@@ -163,58 +195,68 @@ d8eY
 -----END CERTIFICATE-----
 ```
 
-Send the stored certificate back to Vault: `vault write intermediate-ca/intermediate/set-signed certificate=@signed.crt`
-
-Set up URLs: `vault write intermediate-ca/config/urls issuing_certificates="http://vault:8200/v1/intermediate-ca/ca" crl_distribution_points="http://vault:8200/v1/intermediate-ca/crl"`
-
-Create a role to allow Kubernetes-Vault to generate certificates: `vault write intermediate-ca/roles/kubernetes-vault allow_any_name=true max_ttl="24h"`
-
-### 2.5 Enable the AppRole backend
-Enable backend: `vault auth-enable approle`
-
-Set up an app-role for `sample-app` that generates a periodic 6 hour token: `vault write auth/approle/role/sample-app secret_id_ttl=90s period=6h secret_id_num_uses=1`
-
-### 2.6 Create token role for Kubernetes-Vault
-Inspect the policy file `deployments/quick-start/policy.hcl`
-
-Send the policy to Vault: `vault policy-write kubernetes-vault deployments/quick-start/policy.hcl`
-
-Create a token role for Kubernetes-Vault that generates a 6 hour periodic token: `vault write auth/token/roles/kubernetes-vault allowed_policies=kubernetes-vault period=6h`
-
-### 2.7 Generate the token for Kubernetes-Vault and AppID
-Generate the token: `vault token-create -role=kubernetes-vault`. And make a note of the token output. In the example below it would be '00000000-1111-2222-3333-444444444444'
-
+Send the stored certificate back to Vault:
 ```
-$ vault token-create -role=kubernetes-vault
+vault write intermediate-ca/intermediate/set-signed certificate=@signed.crt
+```
 
+Set up URLs:
+```
+vault write intermediate-ca/config/urls issuing_certificates="http://vault:8200/v1/intermediate-ca/ca" \
+    crl_distribution_points="http://vault:8200/v1/intermediate-ca/crl"
+```
+
+### 1.6. Enable the AppRole backend
+Enable backend:
+```
+vault auth-enable approle
+```
+
+## 2. Kubernetes-Vault
+
+### 2.1. Create roles and policies for Kubernetes-Vault
+Create a role to allow Kubernetes-Vault to generate certificates:
+```
+vault write intermediate-ca/roles/kubernetes-vault allow_any_name=true max_ttl="24h"
+```
+
+Inspect the policy file `deployments/quick-start/policy-kubernetes-vault.hcl`
+
+Send the policy to Vault:
+```
+vault policy-write kubernetes-vault deployments/quick-start/policy-kubernetes-vault.hcl
+```
+
+Create a token role for Kubernetes-Vault that generates a 6 hour periodic token:
+```
+vault write auth/token/roles/kubernetes-vault allowed_policies=kubernetes-vault period=6h
+```
+
+### 2.2. Generate the token for Kubernetes-Vault
+Generate the token:
+```
+vault token-create -role=kubernetes-vault
+```
+
+and make a note of the token output. In the example below it would be `00000000-1111-2222-3333-444444444444`
+```
 Key             Value
 ---             -----
-token           00000000-1111-2222-3333-444444444444      
+token           00000000-1111-2222-3333-444444444444
 token_accessor  c50fb600-aaaa-bbbb-cccc-xxxxxxxxxxxx
 token_duration  6h0m0s
 token_renewable true
 token_policies  [default kubernetes-vault]
 ```
 
-Get the app's role id: `vault read auth/approle/role/sample-app/role-id`
-```
-$ vault read auth/approle/role/sample-app/role-id
-
-Key     Value
----     -----
-role_id zzzzzzzzz-7777-8888-9999-tttttttttttt
-```
-
-## 3. Deploy Kubernetes-Vault
-### 3.1 Prepare the manifest and deploy
-
+### 2.3. Prepare the manifest and deploy
 If Kubernetes <= 1.5, use `deployments/quick-start/kubernetes-vault-kube-1.5.yaml`, otherwise use `deployments/quick-start/kubernetes-vault.yaml`.
 
 Check `deployments/quick-start/kubernetes-vault.yaml` and update the Vault token (not the role id) in the Kubernetes deployment.
 
 For example:
 ```
-....
+...
 ----
 apiVersion: v1
 kind: ConfigMap
@@ -228,21 +270,68 @@ data:
 ...
 ```
 
-If you are using Kubernetes versions >= 1.6, make sure you modify the namespaces in the RBAC objects if you are not using the
-`default` namespace.
+If you are using Kubernetes versions >= 1.6, make sure you modify the namespaces in the RBAC objects if you are not using the `default` namespace.
 
-Deploy: `kubectl apply -f deployments/quick-start/kubernetes-vault.yaml`
+Deploy:
+```
+kubectl apply -f deployments/quick-start/kubernetes-vault.yaml
+```
 
-### 3.2 Confirm Kubernetes-Vault deployed successfully
+### 2.4. Confirm Kubernetes-Vault deployed successfully
 Use the Kubernetes dashboard to view the status of the deployment and make sure all pods are healthy.
 
-## 4. Deploy a sample app
-### 4.1 Prepare the manifest and deploy
+## 3. Sample app
+
+### 3.1. Set up an app-role
+Set up an app-role for `sample-app` that generates a periodic 6 hour token:
+```
+vault write auth/approle/role/sample-app secret_id_ttl=90s period=6h secret_id_num_uses=1
+```
+
+### 3.2. Add new rules to kubernetes-vault policy
+Read existing rules from kubernetes-vault policy
+```
+vault read sys/policy/kubernetes-vault
+```
+
+This produces the following output:
+```
+Key     Value
+---     -----
+name    kubernetes-vault
+rules   path "intermediate-ca/issue/kubernetes-vault" {
+  capabilities = ["update"]
+}
+
+path "auth/token/roles/kubernetes-vault" {
+  capabilities = ["read"]
+}
+```
+
+Copy rules starting from `path "intermediate-ca/issue/kubernetes-vault"` up to the end and add them to app
+policy file `deployments/quick-start/policy-sample-app.hcl`.
+
+Write combined set of rules back to kubernetes-vault policy
+```
+vault write sys/policy/kubernetes-vault rules=@deployments/quick-start/policy-sample-app.hcl
+```
+
+### 3.3. Prepare the manifest and deploy the app
+Get the app's role id:
+```
+vault read auth/approle/role/sample-app/role-id
+```
+
+This produces the following output:
+```
+Key     Value
+---     -----
+role_id zzzzzzzzz-7777-8888-9999-tttttttttttt
+```
 
 If Kubernetes <= 1.5, use `deployments/quick-start/sample-app-kube-1.5.yaml`, otherwise use `deployments/quick-start/sample-app.yaml`.
 
 Inspect `deployments/quick-start/sample-app.yaml` and update the role id in the deployment:
-
 ```
 ...
 spec:
@@ -276,9 +365,12 @@ spec:
 ...
 ```
 
-Deploy: `kubectl apply -f deployments/quick-start/sample-app.yaml`
+Deploy:
+```
+kubectl apply -f deployments/quick-start/sample-app.yaml
+```
 
-## 5. Confirm that each pod of the sample app received a Vault token
+## 4. Confirm that each pod of the sample app received a Vault token
 View the logs using the Kubernetes dashboard or `kubectl logs mypod` and confirm that each pod receive a token.
 The token and various other information related to the token should be logged.
 
@@ -289,8 +381,14 @@ policy. In production, you should set appropriate policies for the app-role when
 you SHOULD have a separate AppRole for each app with appropriate policies to restrict access to the secret tree for each app.
 Simply create as many AppRoles as required and set the appropriate `app-id` in the Kubernetes-Vault init-container for each app.
 
-## 6. Tear down
-Clean up: `kubectl delete -f deployments/quick-start/sample-app.yaml -f deployments/quick-start/kubernetes-vault.yaml`
+## Tear down
+Clean up:
+```
+kubectl delete \
+    -f deployments/quick-start/sample-app.yaml \
+    -f deployments/quick-start/kubernetes-vault.yaml \
+    -f deployments/quick-start/vault.yaml
+```
 
 ## Further deployment options
 In this guide, we did not set up TLS client authentication for the metrics endpoint. To do so, simply set the `vaultCABackends`
