@@ -23,7 +23,7 @@ while [ $maxWaitSecond -gt 0 ] && [ -z "$vaultPod" ]
 do
     sleep 1
     echo waited 1 second for kubernetes to deploy Vault
-    maxWaitSecond=$(($maxWaitSecond-1))
+    maxWaitSecond=$((maxWaitSecond-1))
     vaultPod=$(kubectl get pod | grep "^vault*" |awk '{print $1}')
 done
 if [ -z "$vaultPod" ]
@@ -39,7 +39,7 @@ while [ $maxWaitSecond -gt 0 ] && [ "$vaultStatus" != "Running" ]
 do
     sleep 1
     echo waited 1 second for Vault up and running
-    maxWaitSecond=$(($maxWaitSecond-1))
+    maxWaitSecond=$((maxWaitSecond-1))
     vaultStatus=$(kubectl get pod "$vaultPod" -o=jsonpath='{.status.phase}')
     echo Vault pod status "$vaultStatus"
 done
