@@ -18,13 +18,13 @@ kubectl apply -f vault.yaml
 
 # Wait 10 seconds for vault to be deployed.
 maxWaitSecond=10
-vaultPod=$(kubectl get pods -l app=vault | grep ^vault* |awk '{print $1}')
+vaultPod=$(kubectl get pods -l app=vault | grep "^vault*" |awk '{print $1}')
 while [ $maxWaitSecond -gt 0 ] && [ -z "$vaultPod" ]
 do
     sleep 1
     echo waited 1 second for kubernetes to deploy Vault
     maxWaitSecond=$(($maxWaitSecond-1))
-    vaultPod=$(kubectl get pod | grep ^vault* |awk '{print $1}')
+    vaultPod=$(kubectl get pod | grep "^vault*" |awk '{print $1}')
 done
 if [ -z "$vaultPod" ]
 then
