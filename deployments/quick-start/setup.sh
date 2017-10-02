@@ -159,6 +159,6 @@ fi
 kubectl apply -f $SAMPLE_APP_DEPLOYMENT
 
 # 4. Confirm that each pod of the sample app received a Vault token
-echo "\nView the logs using the Kubernetes dashboard or kubectl logs mypod
+echo -e "\nView the logs using the Kubernetes dashboard or kubectl logs mypod
 and confirm that each pod receive a token. The token and various other
 information related to the token should be logged."
