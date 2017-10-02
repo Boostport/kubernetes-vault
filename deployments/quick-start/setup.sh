@@ -49,7 +49,7 @@ then
 fi
 
 # 1.2. Port forward
-nohup kubectl port-forward $vaultPod 8200 &
+nohup kubectl port-forward "$vaultPod" 8200 &
 echo "Waiting for port forwarding to start"
 sleep 3
 
