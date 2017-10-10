@@ -137,7 +137,7 @@ vault write auth/approle/role/sample-app secret_id_ttl=90s period=6h secret_id_n
 # 3.2. Add new rules to kubernetes-vault policy
 current_rules="$(vault read -format=json sys/policy/kubernetes-vault | jq -r .data.rules)"
 app_rules="$(cat policy-sample-app.hcl)"
-echo -e "$current_rules\n\n$app_rules" | vault write sys/policy/kubernetes-vault rules=-
+printf "$current_rules\n\n$app_rules" | vault write sys/policy/kubernetes-vault rules=-
 
 # 3.3. Prepare the manifest and deploy the app
 
@@ -159,6 +159,6 @@ fi
 kubectl apply -f $SAMPLE_APP_DEPLOYMENT
 
 # 4. Confirm that each pod of the sample app received a Vault token
-echo "\nView the logs using the Kubernetes dashboard or kubectl logs mypod
+printf "\nView the logs using the Kubernetes dashboard or kubectl logs mypod
 and confirm that each pod receive a token. The token and various other
 information related to the token should be logged."
