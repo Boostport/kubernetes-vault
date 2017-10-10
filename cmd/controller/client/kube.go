@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"encoding/json"
 	"regexp"
 	"time"
 
@@ -150,22 +149,15 @@ func convertToPod(pod *v1.Pod) (Pod, error) {
 	initContainerReady := false
 	role, hasRole := pod.Metadata.Annotations[RoleAnnotation]
 	initContainerName, hasInitContainerName := pod.Metadata.Annotations[InitContainerAnnotation]
-	initStatus, hasInitStatus := pod.Metadata.Annotations[InitContainerStatusAnnotation]
+	podStatus := pod.GetStatus()
 
-	if initStatus != "" {
-		var initContainers []InitContainerStatus
+	if podStatus != nil {
 
-		err := json.Unmarshal([]byte(initStatus), &initContainers)
+		for _, initContainerStatus := range podStatus.InitContainerStatuses {
 
-		if err != nil {
-			return Pod{}, err
-		}
+			if initContainerStatus.Name != nil && *initContainerStatus.Name == initContainerName {
 
-		for _, initContainer := range initContainers {
-
-			if initContainer.Name == initContainerName {
-
-				if _, ok := initContainer.State["running"]; ok {
+				if initContainerStatus.State != nil && initContainerStatus.State.Running != nil {
 					initContainerReady = true
 					break
 				}
@@ -173,7 +165,7 @@ func convertToPod(pod *v1.Pod) (Pod, error) {
 		}
 	}
 
-	if hasRole && hasInitContainerName && hasInitStatus && initContainerReady {
+	if hasRole && hasInitContainerName && podStatus != nil && initContainerReady {
 		return Pod{
 			Name: *pod.Metadata.Name,
 			Role: role,
