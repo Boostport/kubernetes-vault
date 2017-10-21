@@ -12,7 +12,8 @@ The Kubernetes-Vault project allows pods to automatically receive a Vault token 
 
 ## Prerequisites:
 * Vault should be 0.6.3 and above.
-* You must use Kubernetes 1.4.0 and above as we rely on init containers (in beta) to accept the token.
+* You must use Kubernetes 1.6.0 and above as we rely on init containers (in beta) to accept the token.
+* For Kubernetes 1.5.x and below, please use an older versions of Kubernetes-Vault by referencing the [compatibility table](#kubernetes-version-compatibility).
 * You must generate a periodic token with the correct policy to generate `secret_id`s using the AppRole backend.
 * The Kubernetes-Vault controller uses the Kubernetes service account to watch for new pods. This service account must have the appropriate permissions.
 * Your app should use a [Vault client](https://www.vaultproject.io/api/libraries.html) to renew the token and any secrets you request from Vault.
@@ -205,21 +206,21 @@ The init containers are configured using environment variables and Kubernetes an
 
 #### Environment variables
 
-| Environment Variable |                                                            Description                                                            | Required |          Default Value           |                Example                 |
-|----------------------|-----------------------------------------------------------------------------------------------------------------------------------|----------|----------------------------------|----------------------------------------|
+| Environment Variable | Description                                                                                                                       | Required | Default Value                    | Example                                |
+|:---------------------|:----------------------------------------------------------------------------------------------------------------------------------|:---------|:---------------------------------|:---------------------------------------|
 | CREDENTIALS_PATH     | The location where the Vault token and CA Bundle (if it exists) will be written.                                                  | `no`     | `/var/run/secrets/boostport.com` | `/var/run/my/path`                     |
 | LOG_LEVEL            | The log level. Valid values are `debug` and `error`.                                                                              | `no`     | `debug`                          | `debug`                                |
 | RETRIEVE_TOKEN       | Whether to login using the `secret_id` and `role_id` to retrieve the auth token.                                                  | `no`     | `true`                           | `false`                                |
-| UNWRAP_SECRET        | Whether to unwrap the `secret_id`                                                                                                  | `no`     | `true`                           | `false`                                |
+| UNWRAP_SECRET        | Whether to unwrap the `secret_id`                                                                                                 | `no`     | `true`                           | `false`                                |
 | TIMEOUT              | Maximum amount of time to wait for the wrapped `secret_id` to be pushed. Valid time units are `ns`, `us`, `ms`, `s`, `m` and `h`. | `no`     | `5m`                             | `120s`                                 |
 | VAULT_ROLE_ID        | The Vault role id.                                                                                                                | `yes`    | `none`                           | `313b0821-4ff6-1df8-54dd-c3eea5d3b8b1` |
 
 #### Pod annotations
 
-| Annotation                              | Description                         | Required  | Default Value | Example       |
-|-----------------------------------------|-------------------------------------|-----------|---------------|---------------|
-| pod.boostport.com/vault-approle         | The Vault role.                     | `yes`     | `none`        | `sample-app`  |
-| pod.boostport.com/vault-init-container  | The name of the init container.     | `yes`     | `none`        | `install`     |
+| Annotation                             | Description                     | Required | Default Value | Example      |
+|:---------------------------------------|:--------------------------------|:---------|:--------------|:-------------|
+| pod.boostport.com/vault-approle        | The Vault role.                 | `yes`    | `none`        | `sample-app` |
+| pod.boostport.com/vault-init-container | The name of the init container. | `yes`    | `none`        | `install`    |
 
 ## Metrics
 Kubernetes-Vault uses [Prometheus](https://prometheus.io) for metrics reporting. It exposes these metrics over the `/metrics` endpoint over http or https.
@@ -233,6 +234,14 @@ from the token information that is created by the Kubernetes-Vault container.
 
 In order to use `vault-sidekick` with Kubernetes-Vault, set the `AUTH_FILE` environment variable to the path of the token JSON
 file written by the init container and the `AUTH_FORMAT` environment variable to `kubernetes-vault`.
+
+## Kubernetes version compatibility
+
+| Kubernetes Version    | Kubernetes-Vault Version |
+|:----------------------|:-------------------------|
+| <= 1.5.x              | <= 0.4.8                 |
+| >= 1.6.x and <= 1.7.x | any                      |
+| >= 1.8.x              | >= 0.5.0                 |
 
 ## Troubleshooting
 See the [troubleshooting guide](troubleshooting.md).
