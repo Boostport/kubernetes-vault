@@ -137,7 +137,7 @@ vault write auth/approle/role/sample-app secret_id_ttl=90s period=6h secret_id_n
 # 3.2. Add new rules to kubernetes-vault policy
 current_rules="$(vault read -format=json sys/policy/kubernetes-vault | jq -r .data.rules)"
 app_rules="$(cat policy-sample-app.hcl)"
-printf "$current_rules\n\n$app_rules" | vault write sys/policy/kubernetes-vault rules=-
+printf "%s\n\n%s" "$current_rules" "$app_rules" | vault write sys/policy/kubernetes-vault rules=-
 
 # 3.3. Prepare the manifest and deploy the app
 
