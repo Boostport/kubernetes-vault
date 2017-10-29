@@ -18,13 +18,13 @@ kubectl apply -f vault.yaml
 
 # Wait 10 seconds for vault to be deployed.
 maxWaitSecond=10
-vaultPod=$(kubectl get pods -l app=vault | grep ^vault* |awk '{print $1}')
+vaultPod=$(kubectl get pods -l app=vault | grep "^vault*" |awk '{print $1}')
 while [ $maxWaitSecond -gt 0 ] && [ -z "$vaultPod" ]
 do
     sleep 1
     echo waited 1 second for kubernetes to deploy Vault
-    maxWaitSecond=$(($maxWaitSecond-1))
-    vaultPod=$(kubectl get pod | grep ^vault* |awk '{print $1}')
+    maxWaitSecond=$((maxWaitSecond-1))
+    vaultPod=$(kubectl get pod | grep "^vault*" |awk '{print $1}')
 done
 if [ -z "$vaultPod" ]
 then
@@ -39,7 +39,7 @@ while [ $maxWaitSecond -gt 0 ] && [ "$vaultStatus" != "Running" ]
 do
     sleep 1
     echo waited 1 second for Vault up and running
-    maxWaitSecond=$(($maxWaitSecond-1))
+    maxWaitSecond=$((maxWaitSecond-1))
     vaultStatus=$(kubectl get pod "$vaultPod" -o=jsonpath='{.status.phase}')
     echo Vault pod status "$vaultStatus"
 done
@@ -49,7 +49,7 @@ then
 fi
 
 # 1.2. Port forward
-nohup kubectl port-forward $vaultPod 8200 &
+nohup kubectl port-forward "$vaultPod" 8200 &
 echo "Waiting for port forwarding to start"
 sleep 3
 
@@ -137,7 +137,7 @@ vault write auth/approle/role/sample-app secret_id_ttl=90s period=6h secret_id_n
 # 3.2. Add new rules to kubernetes-vault policy
 current_rules="$(vault read -format=json sys/policy/kubernetes-vault | jq -r .data.rules)"
 app_rules="$(cat policy-sample-app.hcl)"
-printf "$current_rules\n\n$app_rules" | vault write sys/policy/kubernetes-vault rules=-
+printf "%s\n\n%s" "$current_rules" "$app_rules" | vault write sys/policy/kubernetes-vault rules=-
 
 # 3.3. Prepare the manifest and deploy the app
 

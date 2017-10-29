@@ -12,9 +12,9 @@ if [ "$KUBE_1_5" = true ]; then
     SAMPLE_APP_DEPLOYMENT="sample-app-kube-1.5.yaml"
 fi
 
-kubectl delete -f $SAMPLE_APP_DEPLOYMENT -f $KUBERNETES_VAULT_DEPLOYMENT -f vault.yaml
-pid=$(ps -ef | grep "kubectl port-forward" | grep 8200 | awk '{print $2}')
-if [ ! -z $pid ]; then
-    kill $pid
+kubectl delete -f "$SAMPLE_APP_DEPLOYMENT" -f "$KUBERNETES_VAULT_DEPLOYMENT" -f vault.yaml
+pid=$(pgrep -f "kubectl port-forward" | grep 8200)
+if [ ! -z "$pid" ]; then
+    kill "$pid"
 fi
 rm -f nohup.out
