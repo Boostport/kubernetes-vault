@@ -33,7 +33,7 @@ for i in "$@" ; do
     fi
 done
 
-if [ "$HAS_CONFIG_FLAG" = false -a "$HAS_LOG_LEVEL_FLAG" = true ] || [ $NUM_ARGS = 0 ] ; then
+if [ "$HAS_CONFIG_FLAG" = false -a "$HAS_LOG_LEVEL_FLAG" = true ] || [ "$NUM_ARGS" = 0 ] ; then
     set -- "$@" --config="$CONFIG_FILE"
 fi
 
