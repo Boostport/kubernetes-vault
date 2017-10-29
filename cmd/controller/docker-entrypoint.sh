@@ -9,16 +9,16 @@ fi
 
 NUM_ARGS=$#
 
-# If the user is trying to run kuberentes-vault directly with some or no arguments, then
-# pass them to kubernetes-vault.
-if [ "${1:0:1}" = '-' ] || [ $NUM_ARGS = 0 ]; then
+# If the user is trying to run kuberentes-vault directly with some or no
+# arguments, then pass them to kubernetes-vault.
+if [ "${1%%"${1#?}"}" = '-' ] || [ "$NUM_ARGS" = 0 ]; then
     set -- kubernetes-vault "$@"
 fi
 
 HAS_CONFIG_FLAG=false
 
 for i in "$@" ; do
-    if [[ "${i:0:8}" == "--config" ]] ; then
+    if [ "${i%"${i#????????}"}" = "--config" ] ; then
         HAS_CONFIG_FLAG=true
         break
     fi
@@ -27,7 +27,7 @@ done
 HAS_LOG_LEVEL_FLAG=false
 
 for i in "$@" ; do
-    if [[ "${i:0:11}" == "--log-level" ]] ; then
+    if [ "${i%"${i#???????????}"}" = "--log-level" ] ; then
         HAS_LOG_LEVEL_FLAG=true
         break
     fi
