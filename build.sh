@@ -3,7 +3,7 @@
 # Install tools
 apk --update add gcc git musl-dev
 
-# Install glide
+# Install dep
 go get -u github.com/golang/dep/cmd/dep
 
 # Install dependencies
