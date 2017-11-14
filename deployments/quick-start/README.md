@@ -38,7 +38,7 @@ set VAULT_ADDR=http://127.0.0.1:8200
 
 For Linux
 ```
-export VAULT_ADDR=http://127.0.0.1:8200`
+export VAULT_ADDR=http://127.0.0.1:8200
 ```
 
 Type in the root token (`vault-root-token`) to authenticate:
