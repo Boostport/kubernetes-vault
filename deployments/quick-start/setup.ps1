@@ -199,5 +199,3 @@ Write-Host "`n`nView the logs using the Kubernetes dashboard or kubectl logs myp
 and confirm that each pod receive a token. The token and various other
 information related to the token should be logged.`n"
 
-
-# Stop-Process $proxy
