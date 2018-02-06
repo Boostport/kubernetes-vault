@@ -7,10 +7,10 @@ COPY . .
 RUN apk --update add gcc git musl-dev \
  && go get -u github.com/golang/dep/cmd/dep \
  && dep ensure \
- && go build -o kubernetes-vault ./cmd/controller
+ && go build -ldflags "-X 'main.commit=${SOURCE_COMMIT}' -X 'main.tag=${CACHE_TAG}' -X 'main.buildDate=$(date -u)'" -o kubernetes-vault ./cmd/controller
 
 FROM alpine:latest
-LABEL maintainer Francis Chuang <francis.chuang@boostport.com>
+LABEL maintainer="Francis Chuang <francis.chuang@boostport.com>"
 
 RUN mkdir -p /kubernetes-vault
 

@@ -32,7 +32,18 @@ type secretID struct {
 	VaultAddr string `json:"vaultAddr"`
 }
 
+var (
+	commit    string
+	tag       string
+	buildDate string
+)
+
 func main() {
+
+	if len(os.Args) == 2 && os.Args[1] == "version" {
+		showBuildInfo()
+		return
+	}
 
 	logger := logrus.New()
 	logger.Level = logrus.DebugLevel
@@ -64,6 +75,7 @@ func main() {
 		fmt.Fprintf(w, "Lease Duration:\t%d\n", token.LeaseDuration)
 		fmt.Fprintf(w, "Renewable:\t%t\n", token.Renewable)
 		fmt.Fprintf(w, "Vault Address:\t%s\n", token.VaultAddr)
+		fmt.Fprintf(w, "Sample App %s (%s) built on %s\n", tag, commit, buildDate)
 
 	} else if _, err := os.Stat(secretIDPath); err == nil {
 
@@ -110,4 +122,8 @@ func main() {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 	<-sigs
+}
+
+func showBuildInfo() {
+	fmt.Printf("Kubernetes-Vault sample app %s (%s) built on %s\n", tag, commit, buildDate)
 }
