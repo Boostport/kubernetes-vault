@@ -1,0 +1,1 @@
+docker build --build-arg SOURCE_COMMIT=$SOURCE_COMMIT --build-arg CACHE_TAG=$CACHE_TAG -t $IMAGE_NAME .
