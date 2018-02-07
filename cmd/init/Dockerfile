@@ -1,5 +1,8 @@
 FROM golang:1.9-alpine as builder
 
+ARG SOURCE_COMMIT
+ARG CACHE_TAG
+
 WORKDIR $GOPATH/src/github.com/Boostport/kubernetes-vault
 
 COPY . .
