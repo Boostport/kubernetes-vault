@@ -47,7 +47,18 @@ type wrappedSecretID struct {
 	TTL             int    `json:"ttl"`
 }
 
+var (
+	commit    string
+	tag       string
+	buildDate string
+)
+
 func main() {
+
+	if len(os.Args) == 2 && os.Args[1] == "version" {
+		showBuildInfo()
+		return
+	}
 
 	logLevel := os.Getenv("LOG_LEVEL")
 
@@ -234,7 +245,10 @@ func main() {
 			logger.Fatalf("Failed to create vault auth token because we timed out after %s before receiving the secret_id. Exiting.", timeout)
 		}
 	}
+}
 
+func showBuildInfo() {
+	fmt.Printf("Kubernetes-Vault init container %s (%s) built on %s\n", tag, commit, buildDate)
 }
 
 func startHTTPServer(certificate tls.Certificate, logger *logrus.Logger, wrappedSecretId chan<- common.WrappedSecretId) {

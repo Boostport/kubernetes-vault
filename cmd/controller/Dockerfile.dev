@@ -1,5 +1,5 @@
 FROM alpine:latest
-LABEL maintainer Francis Chuang <francis.chuang@boostport.com>
+LABEL maintainer="Francis Chuang <francis.chuang@boostport.com>"
 
 RUN mkdir -p /kubernetes-vault
 

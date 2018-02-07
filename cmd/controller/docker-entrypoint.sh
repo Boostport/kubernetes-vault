@@ -9,9 +9,9 @@ fi
 
 NUM_ARGS=$#
 
-# If the user is trying to run kuberentes-vault directly with some or no
+# If the user is trying to run kubernetes-vault directly with some or no
 # arguments, then pass them to kubernetes-vault.
-if [ "${1%%"${1#?}"}" = '-' ] || [ "$NUM_ARGS" = 0 ]; then
+if [ "${1%%"${1#?}"}" = '-' ] || [ "$NUM_ARGS" -le 1 ]; then
     set -- kubernetes-vault "$@"
 fi
 
