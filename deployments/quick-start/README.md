@@ -43,13 +43,13 @@ export VAULT_ADDR=http://127.0.0.1:8200
 
 Type in the root token (`vault-root-token`) to authenticate:
 ```
-vault auth
+vault login
 ```
 
 ### 1.4. Set up the Root Certificate Authority
 Create a Root CA that expires in 10 years:
 ```
-vault mount -path=root-ca -max-lease-ttl=87600h pki
+vault secrets enable -path=root-ca -max-lease-ttl=87600h pki
 ```
 
 Generate the root certificate:
@@ -66,7 +66,7 @@ vault write root-ca/config/urls issuing_certificates="http://vault:8200/v1/root-
 ### 1.5. Create the Intermediate Certificate Authority
 Create the Intermediate CA that expires in 5 years:
 ```
-vault mount -path=intermediate-ca -max-lease-ttl=43800h pki
+vault secrets enable -path=intermediate-ca -max-lease-ttl=43800h pki
 ```
 
 Generate a Certificate Signing Request:
@@ -209,7 +209,7 @@ vault write intermediate-ca/config/urls issuing_certificates="http://vault:8200/
 ### 1.6. Enable the AppRole backend
 Enable backend:
 ```
-vault auth-enable approle
+vault auth enable approle
 ```
 
 ## 2. Kubernetes-Vault
@@ -224,7 +224,7 @@ Inspect the policy file `deployments/quick-start/policy-kubernetes-vault.hcl`
 
 Send the policy to Vault:
 ```
-vault policy-write kubernetes-vault deployments/quick-start/policy-kubernetes-vault.hcl
+vault policy write kubernetes-vault deployments/quick-start/policy-kubernetes-vault.hcl
 ```
 
 Create a token role for Kubernetes-Vault that generates a 6 hour periodic token:
@@ -313,7 +313,7 @@ policy file `deployments/quick-start/policy-sample-app.hcl`.
 
 Write combined set of rules back to kubernetes-vault policy
 ```
-vault write sys/policy/kubernetes-vault rules=@deployments/quick-start/policy-sample-app.hcl
+vault write sys/policy/kubernetes-vault policy=@deployments/quick-start/policy-sample-app.hcl
 ```
 
 ### 3.3. Prepare the manifest and deploy the app
