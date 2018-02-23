@@ -55,11 +55,11 @@ sleep 3
 
 # 1.3. Set environment variables and authenticate
 export VAULT_ADDR=http://127.0.0.1:8200
-vault auth vault-root-token
+vault login vault-root-token
 
 # 1.4. Set up the Root Certificate Authority
 # Create a Root CA that expires in 10 years:
-vault mount -path=root-ca -max-lease-ttl=87600h pki
+vault secrets enable -path=root-ca -max-lease-ttl=87600h pki
 
 # Generate the root certificate:
 vault write root-ca/root/generate/internal common_name="Root CA" ttl=87600h exclude_cn_from_sans=true
@@ -70,7 +70,7 @@ vault write root-ca/config/urls issuing_certificates="http://vault:8200/v1/root-
 
 # 1.5. Create the Intermediate Certificate Authority
 # Create the Intermediate CA that expires in 5 years:
-vault mount -path=intermediate-ca -max-lease-ttl=43800h pki
+vault secrets enable -path=intermediate-ca -max-lease-ttl=43800h pki
 
 # Generate a Certificate Signing Request:
 vault write -format=json intermediate-ca/intermediate/generate/internal \
@@ -79,8 +79,8 @@ vault write -format=json intermediate-ca/intermediate/generate/internal \
 
 # Ask the Root to sign it:
 vault write -format=json root-ca/root/sign-intermediate \
-    csr=@intermediate.csr use_csr_values=true exclude_cn_from_sans=true \
-    | jq -r .data.certificate > signed.crt
+    csr=@intermediate.csr use_csr_values=true exclude_cn_from_sans=true format=pem_bundle \
+    | jq -r .data.certificate | sed -e :a -e '/^\n*$/{$d;N;};/\n$/ba' > signed.crt
 rm -f intermediate.csr
 
 # Send the stored certificate back to Vault:
@@ -92,7 +92,7 @@ vault write intermediate-ca/config/urls issuing_certificates="http://vault:8200/
     crl_distribution_points="http://vault:8200/v1/intermediate-ca/crl"
 
 # 1.6. Enable the AppRole backend
-vault auth-enable approle
+vault auth enable approle
 
 # 2. Kubernetes-Vault
 
@@ -104,7 +104,7 @@ vault write intermediate-ca/roles/kubernetes-vault allow_any_name=true max_ttl="
 # Inspect the policy file deployments/quick-start/policy-kubernetes-vault.hcl
 
 # Send the policy to Vault:
-vault policy-write kubernetes-vault policy-kubernetes-vault.hcl
+vault policy write kubernetes-vault policy-kubernetes-vault.hcl
 
 # Create a token role for Kubernetes-Vault that generates a 6 hour periodic token:
 vault write auth/token/roles/kubernetes-vault allowed_policies=kubernetes-vault period=6h
@@ -137,7 +137,7 @@ vault write auth/approle/role/sample-app secret_id_ttl=90s period=6h secret_id_n
 # 3.2. Add new rules to kubernetes-vault policy
 current_rules="$(vault read -format=json sys/policy/kubernetes-vault | jq -r .data.rules)"
 app_rules="$(cat policy-sample-app.hcl)"
-printf "%s\n\n%s" "$current_rules" "$app_rules" | vault write sys/policy/kubernetes-vault rules=-
+printf "%s\n\n%s" "$current_rules" "$app_rules" | vault write sys/policy/kubernetes-vault policy=-
 
 # 3.3. Prepare the manifest and deploy the app
 

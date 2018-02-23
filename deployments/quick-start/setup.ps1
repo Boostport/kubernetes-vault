@@ -78,11 +78,11 @@ $proxy = Start-Process -FilePath powershell.exe -ArgumentList "-NoProfile -Execu
 [Environment]::SetEnvironmentVariable("VAULT_ADDR", "http://127.0.0.1:8200", "Process")
 
 # Authenticat to Vault
-vault auth vault-root-token
+vault login vault-root-token
 
 # Set up the Root Certificate Authority
 # Create a Root CA that expires in 10 years:
-vault mount -path=root-ca -max-lease-ttl=87600h pki
+vault secrets enable -path=root-ca -max-lease-ttl=87600h pki
 
 # Generate the root certificate:
 vault write root-ca/root/generate/internal common_name="Root CA" ttl=87600h exclude_cn_from_sans=true
@@ -92,7 +92,7 @@ vault write root-ca/config/urls issuing_certificates="http://vault:8200/v1/root-
 
 # Create the Intermediate Certificate Authority
 # Create the Intermediate CA that expires in 5 years:
-vault mount -path=intermediate-ca -max-lease-ttl=43800h pki
+vault secrets enable -path=intermediate-ca -max-lease-ttl=43800h pki
 
 # Generate a Certificate Signing Request:
 $intermediate_csr_response = vault write -format=json intermediate-ca/intermediate/generate/internal common_name="Intermediate CA" ttl=43800h exclude_cn_from_sans=true
@@ -114,7 +114,7 @@ vault write intermediate-ca/intermediate/set-signed certificate=$signed_data
 vault write intermediate-ca/config/urls issuing_certificates="http://vault:8200/v1/intermediate-ca/ca" crl_distribution_points="http://vault:8200/v1/intermediate-ca/crl"
 
 # Enable the AppRole backend
-vault auth-enable approle
+vault auth enable approle
 
 # Create a role to allow Kubernetes-Vault to generate certificates:
 vault write intermediate-ca/roles/kubernetes-vault allow_any_name=true max_ttl="24h"
@@ -122,7 +122,7 @@ vault write intermediate-ca/roles/kubernetes-vault allow_any_name=true max_ttl="
 # Inspect the policy file deployments/quick-start/policy-kubernetes-vault.hcl
 
 # Send the policy to Vault:
-vault policy-write kubernetes-vault policy-kubernetes-vault.hcl
+vault policy write kubernetes-vault policy-kubernetes-vault.hcl
 
 # Create a token role for Kubernetes-Vault that generates a 6 hour periodic token:
 vault write auth/token/roles/kubernetes-vault allowed_policies=kubernetes-vault period=6h
@@ -162,7 +162,7 @@ $current_rules_data = "$($current_rules_response)" | ConvertFrom-Json
 $current_rules = $current_rules_data.data.rules
 $app_rules = Get-Content "policy-sample-app.hcl"
 
-"$($current_rules)`n`n$($app_rules)" | vault write sys/policy/kubernetes-vault rules=-
+"$($current_rules)`n`n$($app_rules)" | vault write sys/policy/kubernetes-vault policy=-
 
 # Prepare the manifest and deploy the app
 
