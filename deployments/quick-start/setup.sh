@@ -132,7 +132,7 @@ kubectl apply -f $KUBERNETES_VAULT_DEPLOYMENT
 # 3.1. Set up an app-role
 
 # Set up an app-role for sample-app that generates a periodic 6 hour token:
-vault write auth/approle/role/sample-app secret_id_ttl=90s period=6h secret_id_num_uses=1
+vault write auth/approle/role/sample-app secret_id_ttl=90s period=6h secret_id_num_uses=1 policies=kubernetes-vault,default
 
 # 3.2. Add new rules to kubernetes-vault policy
 current_rules="$(vault read -format=json sys/policy/kubernetes-vault | jq -r .data.rules)"
