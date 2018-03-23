@@ -138,7 +138,7 @@ func certificateFromFile(certFile string, keyFile string) (<-chan tls.Certificat
 var RootCmd = &cobra.Command{
 	Use:   "kubernetes-vault",
 	Short: "Kubernetes-vaults is a Kubernetes controller that pushes Vault tokens into pods",
-	Long: `Kubernets-vault is a Kubernetes controller that watches new pods for certain annotations
+	Long: `Kubernetes-vault is a Kubernetes controller that watches new pods for certain annotations
 		and pushes a wrapped secret into an init container in the pod. The init container exchanges
 		the secret and the pod's configured AppRole with Vault for a token and writes the token
 		to a shared volume for the pod. More information at https://github.com/Boostport/kubernetes-vault`,
