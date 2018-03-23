@@ -235,7 +235,7 @@ vault write auth/token/roles/kubernetes-vault allowed_policies=kubernetes-vault 
 ### 2.2. Generate the token for Kubernetes-Vault
 Generate the token:
 ```
-vault token-create -role=kubernetes-vault
+vault token create -role=kubernetes-vault
 ```
 
 and make a note of the token output. In the example below it would be `00000000-1111-2222-3333-444444444444`
