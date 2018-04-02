@@ -1,6 +1,6 @@
 # Metrics
 
-Kubernetes-Vault uses [Prometheus](https://www.prometheus.io) for metrics reporting. These metrcis can be used for
+Kubernetes-Vault uses [Prometheus](https://www.prometheus.io) for metrics reporting. These metrics can be used for
 monitoring and debugging. Metrics are not persisted, if a node restarts, the metrics for that node will reset.
 
 To see the metrics, visit the `/metrics` endpoint.
