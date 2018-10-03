@@ -249,7 +249,7 @@ See the [troubleshooting guide](troubleshooting.md).
 ## Development
 PRs are highly welcomed!
 
-We use [dep](https://github.com/golang/dep) as our dependency manager. To work on the project, install dep, then run `dep ensure`.
+We use Go 1.11 and Go modules for dependency management.
 
 Docker is used to build the binaries, so you need to have docker installed.
 
