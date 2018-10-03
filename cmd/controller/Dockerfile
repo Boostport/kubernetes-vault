@@ -16,6 +16,6 @@ LABEL maintainer="Francis Chuang <francis.chuang@boostport.com>"
 RUN mkdir -p /kubernetes-vault
 
 COPY --from=builder /source/kubernetes-vault /bin/kubernetes-vault
-COPY --from=builder /source/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+COPY --from=builder /source/cmd/controller/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 ENTRYPOINT ["docker-entrypoint.sh"]
