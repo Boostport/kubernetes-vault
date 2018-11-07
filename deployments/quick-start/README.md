@@ -43,7 +43,7 @@ export VAULT_ADDR=http://127.0.0.1:8200
 
 Type in the root token (`vault-root-token`) to authenticate:
 ```
-vault login
+vault login vault-root-token
 ```
 
 ### 1.4. Set up the Root Certificate Authority
