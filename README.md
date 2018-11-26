@@ -122,6 +122,9 @@ If Vault is secured using TLS (https), then you need to set one of the following
   * caCert *(optional)*
   If Vault uses an external CA, provide the absolute path to a file containing the CA certificates in PEM format.
 
+* wrappingTTL *(optional)*
+The TTL for wrapped AppRole secret ids. By default, this is: `60s`.
+
 ##### Example (using Vault as a CA):
 ```yaml
 vault:

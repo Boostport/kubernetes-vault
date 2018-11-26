@@ -25,8 +25,6 @@ import (
 	"golang.org/x/net/context/ctxhttp"
 )
 
-const wrappedSecretIdTTL = "60s"
-
 var wrappedSecretIdRegex = regexp.MustCompile(`auth/approle/role/.+/secret-id`)
 
 // tokenData holds the relevant information about the Vault token passed to the
@@ -155,7 +153,7 @@ func (v *Vault) GetSecretId(role string) (common.WrappedSecretId, error) {
 	}, nil
 }
 
-func NewVault(vaultAddr string, token string, kubeServiceName string, caResolver RootCAResolver, logger *logrus.Logger) (*Vault, error) {
+func NewVault(vaultAddr string, token string, kubeServiceName string, wrappingTTL string, caResolver RootCAResolver, logger *logrus.Logger) (*Vault, error) {
 
 	var (
 		certs []byte
@@ -200,7 +198,7 @@ func NewVault(vaultAddr string, token string, kubeServiceName string, caResolver
 		return nil, errors.Wrap(err, "error parsing supplied token")
 	}
 
-	v.client.SetWrappingLookupFunc(getWrappingFn())
+	v.client.SetWrappingLookupFunc(getWrappingFn(wrappingTTL))
 
 	go v.renewToken()
 
@@ -208,7 +206,7 @@ func NewVault(vaultAddr string, token string, kubeServiceName string, caResolver
 }
 
 // getWrappingFn returns an appropriate wrapping function for Nomad Servers
-func getWrappingFn() func(operation, path string) string {
+func getWrappingFn(wrappingTTL string) func(operation, path string) string {
 
 	return func(operation, path string) string {
 		// Only wrap the token create operation
@@ -216,7 +214,7 @@ func getWrappingFn() func(operation, path string) string {
 			return ""
 		}
 
-		return wrappedSecretIdTTL
+		return wrappingTTL
 	}
 }
 
