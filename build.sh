@@ -3,12 +3,6 @@
 # Install tools
 apk --update add gcc git musl-dev
 
-# Install dep
-go get -u github.com/golang/dep/cmd/dep
-
-# Install dependencies
-dep ensure
-
 # Build the service
 go build -ldflags "-X 'main.commit=dev' -X 'main.tag=dev' -X 'main.buildDate=$(date -u)'" -a -o cmd/controller/kubernetes-vault ./cmd/controller/
 
