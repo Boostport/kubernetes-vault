@@ -112,7 +112,7 @@ vault write auth/token/roles/kubernetes-vault allowed_policies=kubernetes-vault 
 # 2.2. Generate the token for Kubernetes-Vault and AppID
 
 # Generate the token:
-CLIENTTOKEN=$(vault token-create -format=json -role=kubernetes-vault | jq -r .auth.client_token)
+CLIENTTOKEN=$(vault token create -format=json -role=kubernetes-vault | jq -r .auth.client_token)
 
 # 2.3. Prepare the manifest and deploy
 
