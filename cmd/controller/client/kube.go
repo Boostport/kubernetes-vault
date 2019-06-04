@@ -23,6 +23,7 @@ type Kube struct {
 	client              *k8s.Client
 	watchNamespaceRegex *regexp.Regexp
 	logger              *logrus.Logger
+	namespace           string
 }
 
 type Pod struct {
@@ -43,7 +44,7 @@ func (k *Kube) GetPods() ([]Pod, error) {
 
 	ctx, _ := context.WithTimeout(context.Background(), 20*time.Second)
 
-	pods, err := k.client.CoreV1().ListPods(ctx, k8s.AllNamespaces)
+	pods, err := k.client.CoreV1().ListPods(ctx, k.namespace)
 
 	if err != nil {
 		return p, errors.Wrap(err, "could not list pods")
@@ -94,7 +95,7 @@ func (k *Kube) watch(events chan<- Pod, stop <-chan struct{}) {
 		operation := func() error {
 			ctx, _ := context.WithTimeout(context.Background(), 20*time.Second)
 
-			watcher, err = k.client.CoreV1().WatchPods(ctx, k8s.AllNamespaces, opt)
+			watcher, err = k.client.CoreV1().WatchPods(ctx, k.namespace, opt)
 
 			if err != nil {
 				k.logger.Errorf("Error watching pods: %s", err)
@@ -240,5 +241,6 @@ func NewKube(watchNamespace string, logger *logrus.Logger) (*Kube, error) {
 		client:              client,
 		watchNamespaceRegex: r,
 		logger:              logger,
+		namespace:           watchNamespace,  
 	}, nil
 }
