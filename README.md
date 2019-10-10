@@ -113,6 +113,9 @@ The address of the Vault server. For example, `http://vault:8200`.
 * token *(required)*
 A renewable and periodic Vault token to be used by the Kubernetes-Vault controller.
 
+* skipTokenRoleNameValidation *(optional)*
+If set to `true` then skip validation for token role name. By default, this is: `false`.
+
 * tls *(optional)*
 If Vault is secured using TLS (https), then you need to set one of the following:
 

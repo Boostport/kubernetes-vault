@@ -35,6 +35,7 @@ type config struct {
 	Vault struct {
 		Addr  string `mapstructure:"addr"`
 		Token string `mapstructure:"token"`
+		SkipTokenRoleNameValidation bool `mapstructure:"skipTokenRoleNameValidation"`
 		TLS   struct {
 			VaultCABackends []string `mapstructure:"vaultCABackends"`
 			CACert          string   `mapstructure:"caCert"`
@@ -238,7 +239,7 @@ var RootCmd = &cobra.Command{
 			}
 		}
 
-		vault, err := client.NewVault(conf.Vault.Addr, conf.Vault.Token, conf.Kubernetes.Service, conf.Vault.WrappingTTL, rootCAResolver, logger)
+		vault, err := client.NewVault(conf.Vault.Addr, conf.Vault.Token, conf.Vault.SkipTokenRoleNameValidation, conf.Kubernetes.Service, conf.Vault.WrappingTTL, rootCAResolver, logger)
 
 		if err != nil {
 			logger.Fatalf("Could not create the vault client: %s", err)

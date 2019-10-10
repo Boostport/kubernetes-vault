@@ -126,6 +126,7 @@ type Vault struct {
 	vaultAddr       string
 	vaultRootCAs    []byte
 	token           string
+	skipTokenRoleNameValidation   	bool
 	kubeServiceName string
 	client          *api.Client
 	tokenData       *tokenData
@@ -153,7 +154,7 @@ func (v *Vault) GetSecretId(role string) (common.WrappedSecretId, error) {
 	}, nil
 }
 
-func NewVault(vaultAddr string, token string, kubeServiceName string, wrappingTTL string, caResolver RootCAResolver, logger *logrus.Logger) (*Vault, error) {
+func NewVault(vaultAddr string, token string, skipTokenRoleNameValidation bool, kubeServiceName string, wrappingTTL string, caResolver RootCAResolver, logger *logrus.Logger) (*Vault, error) {
 
 	var (
 		certs []byte
@@ -188,6 +189,7 @@ func NewVault(vaultAddr string, token string, kubeServiceName string, wrappingTT
 		vaultAddr:       vaultAddr,
 		vaultRootCAs:    certs,
 		token:           token,
+		skipTokenRoleNameValidation:	skipTokenRoleNameValidation,
 		kubeServiceName: kubeServiceName,
 		client:          client,
 		logger:          logger,
@@ -257,13 +259,15 @@ func (v *Vault) parseToken() error {
 		multierror.Append(&mErr, errors.New("token TTL is zero"))
 	}
 
-	// There must be a valid role
-	if data.Role == "" {
-		multierror.Append(&mErr, errors.New("token role name must be set when not using a root token"))
-	}
+	if v.skipTokenRoleNameValidation == false {
+		// There must be a valid role
+		if data.Role == "" {
+			multierror.Append(&mErr, errors.New("token role name must be set when not using a root token"))
+		}
 
-	if err := v.validateRole(data.Role); err != nil {
-		multierror.Append(&mErr, err)
+		if err := v.validateRole(data.Role); err != nil {
+			multierror.Append(&mErr, err)
+		}
 	}
 
 	v.tokenData = &data
