@@ -102,7 +102,7 @@ $intermediate_csr = "$($intermediate_csr_response)" | ConvertFrom-Json
 $csr_data = $intermediate_csr.data.csr
 
 # Ask the Root to sign it:
-$intermediate_cert_response = vault write -format=json root-ca/root/sign-intermediate csr=$csr_data use_csr_values=true exclude_cn_from_sans=true
+$intermediate_cert_response = vault write -format=json root-ca/root/sign-intermediate csr=$csr_data use_csr_values=true exclude_cn_from_sans=true ttl=43800h
 
 $signed_cert = "$($intermediate_cert_response)" | ConvertFrom-Json
 $signed_data = $signed_cert.data.certificate

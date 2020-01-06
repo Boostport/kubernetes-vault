@@ -79,7 +79,7 @@ vault write -format=json intermediate-ca/intermediate/generate/internal \
 
 # Ask the Root to sign it:
 vault write -format=json root-ca/root/sign-intermediate \
-    csr=@intermediate.csr use_csr_values=true exclude_cn_from_sans=true format=pem_bundle \
+    csr=@intermediate.csr use_csr_values=true exclude_cn_from_sans=true ttl=43800h format=pem_bundle \
     | jq -r .data.certificate | sed -e :a -e '/^\n*$/{$d;N;};/\n$/ba' > signed.crt
 rm -f intermediate.csr
 

@@ -118,7 +118,7 @@ N0wLLG1lbWlo6hM2BvhC+mQAOB8pkwDO4z0cJvLfrfIP5BI=
 Ask the Root to sign it:
 ```
 vault write root-ca/root/sign-intermediate \
-    csr=@intermediate.csr use_csr_values=true exclude_cn_from_sans=true
+    csr=@intermediate.csr use_csr_values=true exclude_cn_from_sans=true ttl=43800h
 ```
 
 This produces the following output:
